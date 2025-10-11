@@ -1,0 +1,53 @@
+package org.firstinspires.ftc.teamcode;
+
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+
+import dev.nextftc.core.commands.Command;
+import dev.nextftc.ftc.Gamepads;
+import dev.nextftc.ftc.NextFTCOpMode;
+import dev.nextftc.hardware.driving.MecanumDriverControlled;
+import dev.nextftc.hardware.impl.MotorEx;
+
+@TeleOp(name = "NextFTC TeleOp Program Java")
+public class NextFTCTeleop extends NextFTCOpMode {
+    public NextFTCTeleop() {
+        /*addComponents(
+                new SubsystemComponent(Lift.INSTANCE, Claw.INSTANCE),
+                BulkReadComponent.INSTANCE,
+                BindingsComponent.INSTANCE
+        );*/
+    }
+
+    // change the names and directions to suit your robot
+    private final MotorEx frontLeftMotor = new MotorEx("front_left_motor").reversed();
+    private final MotorEx frontRightMotor = new MotorEx("front_right_motor");
+    private final MotorEx backLeftMotor = new MotorEx("back_left_motor").reversed();
+    private final MotorEx backRightMotor = new MotorEx("back_right_motor");
+
+    @Override
+    public void onStartButtonPressed() {
+        Command driverControlled = new MecanumDriverControlled(
+                frontLeftMotor,
+                frontRightMotor,
+                backLeftMotor,
+                backRightMotor,
+                Gamepads.gamepad1().leftStickY().negate(),
+                Gamepads.gamepad1().leftStickX(),
+                Gamepads.gamepad1().rightStickX()
+        );
+        driverControlled.schedule();
+
+        /*Gamepads.gamepad2().dpadUp()
+                .whenBecomesTrue(Lift.INSTANCE.toHigh)
+                .whenBecomesFalse(Claw.INSTANCE.open);
+
+        Gamepads.gamepad2().rightTrigger().greaterThan(0.2)
+                .whenBecomesTrue(
+                        Claw.INSTANCE.close.then(Lift.INSTANCE.toHigh)
+                );
+
+        Gamepads.gamepad2().leftBumper().whenBecomesTrue(
+                Claw.INSTANCE.open.and(Lift.INSTANCE.toLow)
+        );*/
+    }
+}
