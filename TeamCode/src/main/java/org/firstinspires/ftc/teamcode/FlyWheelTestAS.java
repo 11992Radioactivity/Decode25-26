@@ -1,36 +1,49 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import java.util.ArrayList;
-import java.lang.reflect.Array;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+
+//import dev.nextftc.control.feedback.PIDCoefficients;
+//import dev.nextftc.control.feedback.PIDController;
+
 
 @TeleOp
-public class FlyWheelTest extends LinearOpMode {
-    private DcMotorEx flywheel;
+public class FlyWheelTestAS extends LinearOpMode {
+    private DcMotorEx flywheelL;
+    private DcMotorEx flywheelR;
+    //private PIDController leftController = new PIDController(new PIDCoefficients(0.0075, 0.0005, 0));
+    //private PIDController rightController = new PIDController(new PIDCoefficients(0.0075, 0.0005, 0));
     private final double ticksPerRev = 145.1;//28;
 
     public void runOpMode() {
-        flywheel = hardwareMap.get(DcMotorEx.class, "FlyWheel");
-        flywheel.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        flywheelL = hardwareMap.get(DcMotorEx.class, "FlyWheelL");
+        flywheelL.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        flywheelR = hardwareMap.get(DcMotorEx.class, "FlyWheelR");
+        flywheelR.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         waitForStart();
 
-        double targetSpeed = 600;
-        double lastEnc = flywheel.getCurrentPosition();
+        /*leftController.reset();
+        rightController.reset();
+
+        leftController.calculate()*/
+
+        double targetSpeed = 1100;
+        /*double lastEnc = flywheel.getCurrentPosition();
         double lastTime = System.currentTimeMillis();
         double integral = 0;
         ArrayList<Double> lastVels = new ArrayList<>();
-        double start = lastTime;
+        double start = lastTime;*/
 
         // rev hd hex : p (0.00005) i (0.00001) f (0.1)
         // gobilda 1150 : p (0.005) i (0.0001) f (0.2)
 
         while (opModeIsActive()) {
-            double curEnc = flywheel.getCurrentPosition();
+            /*double curEnc = flywheel.getCurrentPosition();
             double curTime = System.currentTimeMillis();
             double dt = (curTime - lastTime) / 1000;
             double velocity = (curEnc - lastEnc) / dt;
@@ -62,11 +75,13 @@ public class FlyWheelTest extends LinearOpMode {
             double error = targetSpeed - rpm;
             integral += error;
             double power = (error * 0.0075) + (integral * 0.0005) + 0.2;
-            power = Math.max(0.2, power);
-            flywheel.setPower(power);
+            power = Math.max(0.2, power);*/
 
-            telemetry.addData("velocity (tick/sec)", avgVelocity);
-            telemetry.addData("velocity (revs/min)", rpm);
+            flywheelL.setVelocity(-targetSpeed * 60 * 360, AngleUnit.DEGREES);
+            flywheelR.setVelocity(targetSpeed * 60 * 360, AngleUnit.DEGREES);
+
+            //telemetry.addData("velocity (tick/sec)", avgVelocity);
+            //telemetry.addData("velocity (revs/min)", rpm);
             telemetry.update();
         }
     }
