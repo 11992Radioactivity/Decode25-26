@@ -32,7 +32,7 @@ public class FlyWheelTestAS extends LinearOpMode {
 
         leftController.calculate()*/
 
-        double targetSpeed = 1100;
+        double targetSpeed = 6000;
         /*double lastEnc = flywheel.getCurrentPosition();
         double lastTime = System.currentTimeMillis();
         double integral = 0;
@@ -77,8 +77,10 @@ public class FlyWheelTestAS extends LinearOpMode {
             double power = (error * 0.0075) + (integral * 0.0005) + 0.2;
             power = Math.max(0.2, power);*/
 
-            flywheelL.setVelocity(-targetSpeed * 60 * 360, AngleUnit.DEGREES);
-            flywheelR.setVelocity(targetSpeed * 60 * 360, AngleUnit.DEGREES);
+            flywheelL.setVelocity(-targetSpeed * (28.0 / 60.0));
+            flywheelR.setVelocity(targetSpeed * (28.0 / 60.0));
+            //flywheelL.setPower(-0.1);
+            //flywheelR.setPower(0.1);
 
             //telemetry.addData("velocity (tick/sec)", avgVelocity);
             //telemetry.addData("velocity (revs/min)", rpm);

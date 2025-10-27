@@ -49,3 +49,8 @@ dependencies {
     implementation 'dev.nextftc.extensions:pedro:1.0.0'
     implementation("dev.frozenmilk.sinister:Sloth:0.2.4")
 }
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}

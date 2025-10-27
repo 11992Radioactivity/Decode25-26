@@ -1,16 +1,20 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.bylazar.telemetry.PanelsTelemetry;
+import com.bylazar.telemetry.TelemetryManager;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
-import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.pedroPathing.*;
+import org.firstinspires.ftc.teamcode.subsystems.DoubleShooter;
 
 import dev.nextftc.core.commands.Command;
 import dev.nextftc.core.commands.delays.Delay;
 import dev.nextftc.core.commands.groups.SequentialGroup;
+import dev.nextftc.core.components.SubsystemComponent;
 import dev.nextftc.extensions.pedro.FollowPath;
 import dev.nextftc.extensions.pedro.PedroComponent;
 import dev.nextftc.ftc.NextFTCOpMode;
@@ -21,15 +25,17 @@ import dev.nextftc.hardware.impl.MotorEx;
 public class PedroAuto extends NextFTCOpMode {
     public PedroAuto() {
         addComponents(
+                //new SubsystemComponent(DoubleShooter.INSTANCE),
                 BulkReadComponent.INSTANCE,
                 new PedroComponent(Constants::createFollower)
         );
     }
 
-    private final MotorEx frontLeftMotor = new MotorEx("front_left_motor").brakeMode().reversed();
+    private final MotorEx frontLeftMotor = new MotorEx("front_left_motor").brakeMode();
     private final MotorEx frontRightMotor = new MotorEx("front_right_motor").brakeMode();
-    private final MotorEx backLeftMotor = new MotorEx("back_left_motor").brakeMode().reversed();
+    private final MotorEx backLeftMotor = new MotorEx("back_left_motor").brakeMode();
     private final MotorEx backRightMotor = new MotorEx("back_right_motor").brakeMode();
+    private final TelemetryManager telemetryM = PanelsTelemetry.INSTANCE.getTelemetry();
 
     public static class Paths {
 
@@ -45,7 +51,7 @@ public class PedroAuto extends NextFTCOpMode {
                     .addPath(
                             new BezierLine(new Pose(20.300, 122.600), new Pose(36.000, 107.500))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(-35), Math.toRadians(135))
+                    .setLinearHeadingInterpolation(Math.toRadians(325), Math.toRadians(135))
                     .build();
 
             Path2 = follower
@@ -76,21 +82,28 @@ public class PedroAuto extends NextFTCOpMode {
 
     @Override
     public void onStartButtonPressed() {
+        Drawing.init();
+
+        PedroComponent.follower().setStartingPose(new Pose(20.300, 122.600, Math.toRadians(325)));
+
         Paths paths = new Paths();
-        Command p1 = new FollowPath(paths.Path1);
-        Command p2 = new FollowPath(paths.Path2);
-        Command p3 = new FollowPath(paths.Path3);
-        Command p4 = new FollowPath(paths.Path4);
 
-        SequentialGroup auto = new SequentialGroup(
-                p1,
-                new Delay(3000),//shoot
-                p2,
-                p3,
-                p4,
-                new Delay(3000)//shoot
-        );
+        new SequentialGroup(
+                new FollowPath(paths.Path1, true, 0.5),
+                new Delay(3), //shoot
+                new FollowPath(paths.Path2, true, 0.5),
+                new FollowPath(paths.Path3, true, 0.5),
+                new FollowPath(paths.Path4, true, 0.5),
+                new Delay(3) //shoot
+        ).schedule();
+    }
 
-        auto.schedule();
+    @Override
+    public void onUpdate() {
+        telemetryM.debug("position", PedroComponent.follower().getPose());
+        telemetryM.debug("velocity", PedroComponent.follower().getVelocity());
+
+        Drawing.drawDebug(PedroComponent.follower());
+        telemetryM.update();
     }
 }
