@@ -2,20 +2,22 @@ package org.firstinspires.ftc.teamcode.subsystems;
 
 import dev.nextftc.control.ControlSystem;
 import dev.nextftc.core.commands.Command;
-import dev.nextftc.core.commands.groups.ParallelGroup;
 import dev.nextftc.core.subsystems.Subsystem;
+import dev.nextftc.hardware.controllable.MotorGroup;
 import dev.nextftc.hardware.controllable.RunToVelocity;
 import dev.nextftc.hardware.impl.MotorEx;
 
-public class SingleShooter implements Subsystem {
-    public static final SingleShooter INSTANCE = new SingleShooter();
-    private SingleShooter() {}
+public class Shooter implements Subsystem {
+    public static final Shooter INSTANCE = new Shooter();
+    private Shooter() {}
 
-    private MotorEx motor = new MotorEx("FlyWheelL");
+    private MotorGroup motors = new MotorGroup(
+            new MotorEx("FlyWheelR"), // right is leader because it doesn't have to be reversed
+            (new MotorEx("FlyWheelL")).reversed()
+    );
 
     private ControlSystem control = ControlSystem.builder()
-            .velPid(0.00005, 0.00001)
-            .basicFF(0.1)
+            .velPid(0.0065, 0.018) // i gets most of the way and p gives a little nudge
             .build();
 
     private final double ppr = 28; // pulses per revolution (28 for 6k rpm)
@@ -32,8 +34,12 @@ public class SingleShooter implements Subsystem {
         on = new RunToVelocity(control, targetSpeed).requires(this).named("ShooterOn");
     }
 
+    public double getCurrentSpeed() {
+        return motors.getVelocity() / rpmToPPS;
+    }
+
     @Override
     public void periodic() {
-        motor.setPower(control.calculate(motor.getState()));
+        motors.setPower(control.calculate(motors.getState()));
     }
 }

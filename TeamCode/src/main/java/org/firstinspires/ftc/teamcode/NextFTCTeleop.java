@@ -59,8 +59,8 @@ public class NextFTCTeleop extends NextFTCOpMode {
                 backRightMotor,
                 gp1.leftStickY().negate(),
                 gp1.leftStickX(),
-                gp1.rightStickX().map(x -> x/2)
-                //new FieldCentric(() -> Angle.fromRad(PedroComponent.follower().getHeading()))
+                gp1.rightStickX().map(x -> x/2),
+                new FieldCentric(() -> Angle.fromRad(PedroComponent.follower().getHeading()))
         );
         driverControlled.schedule();
 

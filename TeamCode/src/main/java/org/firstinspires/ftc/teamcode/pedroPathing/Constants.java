@@ -15,17 +15,17 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 public class Constants {
+    // TODO: TUNE PEDRO (build with teamcode to avoid sloth problems with panels)
     public static FollowerConstants followerConstants = new FollowerConstants()
             .mass(6.8)
             .forwardZeroPowerAcceleration(-39.840248)
             .lateralZeroPowerAcceleration(-52.597607)
             .translationalPIDFCoefficients(new PIDFCoefficients(
-                    0.03,
+                    0.05,
                     0,
                     0,
                     0.015
             ))
-            //.translationalPIDFSwitch(4)
             .headingPIDFCoefficients(new PIDFCoefficients(
                     0.8,
                     0,
@@ -39,10 +39,8 @@ public class Constants {
                     0.6,
                     0.01
             ))
-            //.drivePIDFSwitch(15)
             .centripetalScaling(0.0005);
 
-    // TODO: TUNE PEDRO
     public static MecanumConstants driveConstants = new MecanumConstants()
             .maxPower(1)
             .rightFrontMotorName("front_right_motor")
@@ -58,9 +56,9 @@ public class Constants {
 
     // TODO: FIND NEW POSITIONS AFTER MOVING DRIVE MOTORS BACK
     public static PinpointConstants localizerConstants = new PinpointConstants()
-            .forwardPodY(-96)
-            .strafePodX(48)
-            .distanceUnit(DistanceUnit.MM)
+            .forwardPodY(1.32)
+            .strafePodX(-3.56)
+            .distanceUnit(DistanceUnit.INCH)
             .hardwareMapName("pinpoint")
             .encoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD)
             .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD)
