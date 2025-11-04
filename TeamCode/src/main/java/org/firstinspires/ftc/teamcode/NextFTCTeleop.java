@@ -4,25 +4,17 @@ import com.bylazar.gamepad.GamepadManager;
 import com.bylazar.gamepad.PanelsGamepad;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
-import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.*;
-import org.firstinspires.ftc.teamcode.subsystems.DoubleShooter;
 
-import dev.nextftc.core.commands.Command;
 import dev.nextftc.core.components.BindingsComponent;
-import dev.nextftc.core.components.SubsystemComponent;
-import dev.nextftc.core.units.Angle;
 import dev.nextftc.extensions.pedro.PedroComponent;
 import dev.nextftc.ftc.ActiveOpMode;
 import dev.nextftc.ftc.GamepadEx;
-import dev.nextftc.ftc.Gamepads;
 import dev.nextftc.ftc.NextFTCOpMode;
 import dev.nextftc.ftc.components.BulkReadComponent;
 import dev.nextftc.hardware.driving.DriverControlledCommand;
-import dev.nextftc.hardware.driving.FieldCentric;
-import dev.nextftc.hardware.driving.HolonomicMode;
 import dev.nextftc.hardware.driving.MecanumDriverControlled;
 import dev.nextftc.hardware.impl.MotorEx;
 
@@ -30,7 +22,7 @@ import dev.nextftc.hardware.impl.MotorEx;
 public class NextFTCTeleop extends NextFTCOpMode {
     public NextFTCTeleop() {
         addComponents(
-                //new SubsystemComponent(DoubleShooter.INSTANCE),
+                //new SubsystemComponent(Shooter.INSTANCE),
                 BulkReadComponent.INSTANCE,
                 BindingsComponent.INSTANCE,
                 new PedroComponent(Constants::createFollower)
@@ -57,10 +49,17 @@ public class NextFTCTeleop extends NextFTCOpMode {
                 frontRightMotor,
                 backLeftMotor,
                 backRightMotor,
-                gp1.leftStickY().negate(),
-                gp1.leftStickX(),
-                gp1.rightStickX().map(x -> x/2),
-                new FieldCentric(() -> Angle.fromRad(PedroComponent.follower().getHeading()))
+                gp1.leftStickY().negate().deadZone(0.2),
+                () -> {
+                    if (panelsGamepad1.asCombinedFTCGamepad(ActiveOpMode.gamepad1()).left_trigger > 0.2) {
+                        return (double) -panelsGamepad1.asCombinedFTCGamepad(ActiveOpMode.gamepad1()).left_trigger;
+                    } else if (panelsGamepad1.asCombinedFTCGamepad(ActiveOpMode.gamepad1()).right_trigger > 0.2) {
+                        return (double) panelsGamepad1.asCombinedFTCGamepad(ActiveOpMode.gamepad1()).right_trigger;
+                    }
+                    return 0.0;
+                },
+                gp1.rightStickX().deadZone(0.4).map(x -> (x * Math.abs(x))/2)//,
+                //new FieldCentric(() -> Angle.fromRad(PedroComponent.follower().getHeading()))
         );
         driverControlled.schedule();
 

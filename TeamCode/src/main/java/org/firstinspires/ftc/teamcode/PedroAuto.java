@@ -11,12 +11,9 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.*;
-import org.firstinspires.ftc.teamcode.subsystems.DoubleShooter;
 
-import dev.nextftc.core.commands.Command;
 import dev.nextftc.core.commands.delays.Delay;
 import dev.nextftc.core.commands.groups.SequentialGroup;
-import dev.nextftc.core.components.SubsystemComponent;
 import dev.nextftc.extensions.pedro.FollowPath;
 import dev.nextftc.extensions.pedro.PedroComponent;
 import dev.nextftc.ftc.NextFTCOpMode;
@@ -27,7 +24,7 @@ import dev.nextftc.hardware.impl.MotorEx;
 public class PedroAuto extends NextFTCOpMode {
     public PedroAuto() {
         addComponents(
-                //new SubsystemComponent(DoubleShooter.INSTANCE),
+                //new SubsystemComponent(Shooter.INSTANCE),
                 BulkReadComponent.INSTANCE,
                 new PedroComponent(Constants::createFollower)
         );
