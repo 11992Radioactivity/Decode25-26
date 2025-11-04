@@ -11,27 +11,39 @@ public class Shooter implements Subsystem {
     public static final Shooter INSTANCE = new Shooter();
     private Shooter() {}
 
+    // set as many motors as you want with one line of code
     private MotorGroup motors = new MotorGroup(
-            new MotorEx("FlyWheelR"), // right is leader because it doesn't have to be reversed
-            (new MotorEx("FlyWheelL")).reversed()
+            new MotorEx("FlyWheelR") // right is leader because it doesn't have to be reversed
+            //(new MotorEx("FlyWheelL")).reversed()
     );
 
+    // - feedforward is good for general use but doesn't react fast
+    // - pid is good for fast reaction but goes to 0 at setpoint which is bad for flywheel
+    // solution = combine both for ultimate flywheel controller
     private ControlSystem control = ControlSystem.builder()
-            .velPid(0.0065, 0.018) // i gets most of the way and p gives a little nudge
+            .basicFF(0.000475, 0, 0) // power proportional to speed
+            .velPid(0, 0) // power proportional to distance between current and set speed
             .build();
 
-    private final double ppr = 28; // pulses per revolution (28 for 6k rpm)
-    private final double rpmToPPS = ppr / 60; // (rpm / 60) * ppr
+    private double ppr = 28; // pulses per revolution (28 for 6k rpm)
+    private double rpmToPPS = ppr / 60; // (rpm / 60) * ppr
 
-    private double targetSpeed = 2400 * rpmToPPS;
+    public double targetSpeed = 4000;
 
-    public Command off = new RunToVelocity(control, 0).requires(this).named("ShooterOff");
-    public Command on = new RunToVelocity(control, targetSpeed).requires(this).named("ShooterOn");
+    public Command off = new RunToVelocity(control, 0)
+            .requires(this)
+            .named("ShooterOff");
+    public Command on = new RunToVelocity(control, targetSpeed * rpmToPPS)
+            .requires(this)
+            .named("ShooterOn");
 
-    public void setTargetSpeed(double rpm) {
-        targetSpeed = rpm * rpmToPPS;
+    public void setSpeed(double rpm) {
+        targetSpeed = rpm;
 
-        on = new RunToVelocity(control, targetSpeed).requires(this).named("ShooterOn");
+        on = new RunToVelocity(control, targetSpeed * rpmToPPS)
+                .requires(this)
+                .named("ShooterOn");
+        on.schedule();
     }
 
     public double getCurrentSpeed() {
