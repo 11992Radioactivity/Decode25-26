@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.subsystems;
 
 import android.util.Size;
 
+import com.bylazar.camerastream.PanelsCameraStream;
 import com.bylazar.telemetry.JoinedTelemetry;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
@@ -37,6 +38,8 @@ public class AprilTagCamera {
                 .setCameraResolution(new Size(640, 480))
                 .addProcessor(aprilTagProcessor)
                 .build();
+
+        PanelsCameraStream.INSTANCE.startStream(visionPortal, 15);
     }
 
     public void update() {
@@ -71,6 +74,7 @@ public class AprilTagCamera {
     public void stop() {
         if (visionPortal != null) {
             visionPortal.close();
+            PanelsCameraStream.INSTANCE.stopStream();
         }
     }
 }
