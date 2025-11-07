@@ -1,5 +1,8 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
+import com.pedropathing.geometry.Pose;
+import com.pedropathing.math.Vector;
+
 import dev.nextftc.control.ControlSystem;
 import dev.nextftc.core.commands.Command;
 import dev.nextftc.core.subsystems.Subsystem;
@@ -21,8 +24,8 @@ public class Shooter implements Subsystem {
     // - pid is good for fast reaction but goes to 0 at setpoint which is bad for flywheel
     // solution = combine both for ultimate flywheel controller
     private ControlSystem control = ControlSystem.builder()
-            .basicFF(0.000475, 0, 0) // power proportional to speed
-            .velPid(0, 0) // power proportional to distance between current and set speed
+            .basicFF(0.0042 / 12, 0, 2.1438978259089394 / 12) // power proportional to speed
+            .velPid(0.005) // power proportional to distance between current and set speed
             .build();
 
     private double ppr = 28; // pulses per revolution (28 for 6k rpm)
@@ -44,6 +47,57 @@ public class Shooter implements Subsystem {
                 .requires(this)
                 .named("ShooterOn");
         on.schedule();
+    }
+
+    // https://www.desmos.com/calculator/rfsibijg0u
+    private double getSpeedFromDistance(double distIn) {
+        // constants in inches and radians
+        double gravityIn = (9.81 * 1000) / 25.4;
+        double shooterAngleRad = 60 * (Math.PI / 180);
+        double goalHeightIn = 37.25;
+        double shooterHeightIn = 16;
+
+        // derived equation for magnitude of v0 in x = x0 + v0t + (1/2)at^2
+        double numerator = gravityIn * distIn * distIn;
+        double denominatorF1 = 2 * Math.pow(Math.cos(shooterAngleRad), 2);
+        double denominatorF2 = distIn * Math.tan(shooterAngleRad) - (goalHeightIn - shooterHeightIn);
+        double denominator = denominatorF1 * denominatorF2;
+        double linearSpeed = Math.sqrt(numerator / denominator);
+
+        return linearSpeed;
+    }
+
+    public void setSpeedFromLinearSpeed(double speedIn) {
+        // linear speed to angular speed with a cubic regression
+        double a = 0.000680854;
+        double b = -0.303452;
+        double c = 46.16874;
+        double rpm = a * Math.pow(speedIn, 3) + b * Math.pow(speedIn, 2) + c * speedIn;
+
+        setSpeed(rpm);
+    }
+
+    public void setSpeedFromDistance(double distIn) {
+        double linearSpeed = getSpeedFromDistance(distIn);
+        setSpeedFromLinearSpeed(linearSpeed);
+    }
+
+    // set speed by subtracting velocity from goal position
+    public void setSpeedCompensateRobotVelocity(Pose initialGoalPose, Pose robotPose, Vector robotVelocity) {
+        Pose goalPose = initialGoalPose.copy();
+
+        // iterate until distance from goal and speed converge
+        for (int i = 0; i < 3; i++) {
+            double dist = goalPose.distanceFrom(robotPose);
+            double linearSpeed = getSpeedFromDistance(dist);
+            double time = dist / (linearSpeed * Math.cos(Math.PI / 3));
+            Vector newPose = goalPose.getAsVector().minus(robotVelocity.copy().times(time));
+            goalPose = new Pose(newPose.getXComponent(), newPose.getYComponent());
+        }
+
+        double dist = goalPose.distanceFrom(robotPose);
+        double linearSpeed = getSpeedFromDistance(dist);
+        setSpeedFromLinearSpeed(linearSpeed);
     }
 
     public double getCurrentSpeed() {

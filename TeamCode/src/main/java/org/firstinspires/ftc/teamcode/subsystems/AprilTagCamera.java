@@ -39,7 +39,7 @@ public class AprilTagCamera {
                 .addProcessor(aprilTagProcessor)
                 .build();
 
-        PanelsCameraStream.INSTANCE.startStream(visionPortal, 15);
+        //PanelsCameraStream.INSTANCE.startStream(visionPortal, 15);
     }
 
     public void update() {
@@ -74,7 +74,7 @@ public class AprilTagCamera {
     public void stop() {
         if (visionPortal != null) {
             visionPortal.close();
-            PanelsCameraStream.INSTANCE.stopStream();
+            //PanelsCameraStream.INSTANCE.stopStream();
         }
     }
 }
