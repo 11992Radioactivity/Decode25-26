@@ -4,11 +4,13 @@ import android.util.Size;
 
 import com.bylazar.camerastream.PanelsCameraStream;
 import com.bylazar.telemetry.JoinedTelemetry;
+import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
@@ -57,6 +59,13 @@ public class AprilTagCamera {
             }
         }
         return null;
+    }
+
+    // convert ftc field coords to pedro coords
+    public Pose getRobotPoseFromTag(AprilTagDetection detection) {
+        Position position = detection.robotPose.getPosition().toUnit(DistanceUnit.INCH);
+        double heading = detection.robotPose.getOrientation().getYaw(AngleUnit.RADIANS);
+        return new Pose(position.y + 72, -position.x + 72, heading);
     }
 
     public void displayTag(AprilTagDetection detection) {
