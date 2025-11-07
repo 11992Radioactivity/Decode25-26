@@ -10,6 +10,7 @@ import dev.nextftc.hardware.controllable.MotorGroup;
 import dev.nextftc.hardware.controllable.RunToVelocity;
 import dev.nextftc.hardware.impl.MotorEx;
 
+// https://medium.com/@vikramaditya.nishant/programming-a-decode-shooter-4ab114dac01f
 public class Shooter implements Subsystem {
     public static final Shooter INSTANCE = new Shooter();
     private Shooter() {}
