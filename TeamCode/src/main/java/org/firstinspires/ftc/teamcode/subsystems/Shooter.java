@@ -55,7 +55,7 @@ public class Shooter implements Subsystem {
         // constants in inches and radians
         double gravityIn = (9.81 * 1000) / 25.4;
         double shooterAngleRad = 60 * (Math.PI / 180);
-        double goalHeightIn = 37.25;
+        double goalHeightIn = 38.75;
         double shooterHeightIn = 16;
 
         // derived equation for magnitude of v0 in x = x0 + v0t + (1/2)at^2
