@@ -6,6 +6,7 @@ import com.bylazar.telemetry.JoinedTelemetry;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.*;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
@@ -47,13 +48,19 @@ public class NextFTCTeleop extends NextFTCOpMode {
 
     private final boolean onBlue = true;
     private boolean autoAim = false;
+    private double targetHeading = 0;
+    private boolean activeTurning = false;
+    private ElapsedTime turnTimer = new ElapsedTime();
 
     private Pose goalPose;
 
-    private final double autoAimGain = 1.0 / 15.0; // 1 / (point to slow down at after reaching)
+    private final double autoAimGain = 1.0 / 45.0; // 1 / (point to slow down at after reaching)
 
     @Override
     public void onStartButtonPressed() {
+        Shooter.INSTANCE.off.schedule();
+
+        PedroComponent.follower().setStartingPose(new Pose(72, 72));
         if (onBlue) goalPose = new Pose(0, 144);
         else goalPose = new Pose(144, 144);
 
@@ -77,12 +84,30 @@ public class NextFTCTeleop extends NextFTCOpMode {
                     return 0.0;
                 },
                 () -> { // auto aim when in shooting mode
-                    if (!autoAim) return gp1.rightStickX().deadZone(0.4).map(x -> (x * Math.abs(x))/2).get();
-
-                    Pose target = goalPose.copy().minus(PedroComponent.follower().getPose());
-                    double angle = Math.atan2(target.getY(), target.getX());
-                    double error = angle - PedroComponent.follower().getHeading();
-                    return Math.toDegrees(error) * autoAimGain;
+                    double stickX = panelsGamepad1.asCombinedFTCGamepad(ActiveOpMode.gamepad1()).right_stick_x;
+                    //Pose target = goalPose.copy().minus(PedroComponent.follower().getPose());
+                    //double angle = Math.atan2(target.getY(), target.getX());
+                    //telemetryM.addData("auto aim angle", Math.toDegrees(angle));
+                    //if (!autoAim) {
+                    if (Math.abs(stickX) > 0.4) {
+                        activeTurning = true;
+                        targetHeading = PedroComponent.follower().getHeading();
+                        turnTimer.reset();
+                        return (stickX * Math.abs(stickX)) / 2.0;
+                    } else if (activeTurning && turnTimer.seconds() > 0.05) {
+                        targetHeading = PedroComponent.follower().getHeading();
+                        activeTurning = false;
+                    }
+                    double error = Math.toDegrees(targetHeading - PedroComponent.follower().getHeading());
+                    if (error > 180) {
+                        error -= 360;
+                    } else if (error < -180) {
+                        error += 360;
+                    }
+                    return -0.03 * error;
+                    //}
+                    //double error = angle - PedroComponent.follower().getHeading();
+                    //return 0.0 * Math.toDegrees(error);
                 }//,
                 //new FieldCentric(() -> Angle.fromRad(PedroComponent.follower().getHeading()))
         );
@@ -121,16 +146,20 @@ public class NextFTCTeleop extends NextFTCOpMode {
     @Override
     public void onUpdate() {
         BindingManager.update();
+        double dist = PedroComponent.follower().getPose().distanceFrom(goalPose);
 
         // TODO: Test shooting while moving
         if (autoAim) { // update shooter speed outside of just when you press the button
-            double dist = PedroComponent.follower().getPose().distanceFrom(goalPose);
             Shooter.INSTANCE.setSpeedFromDistance(dist);
             // scheduling new speed command every frame is fine because
             // command manager just cancels old commands that are doing the same thing
         }
 
+        telemetryM.addData("angle vel", PedroComponent.follower().getAngularVelocity());
+        telemetryM.addData("target heading", targetHeading);
         telemetryM.addData("shooter  vel", Shooter.INSTANCE.getCurrentSpeed());
+        telemetryM.addData("shooter target", Shooter.INSTANCE.getTargetSpeed());
+        telemetryM.addData("distance from goal", dist);
         telemetryM.addData("position", PedroComponent.follower().getPose());
         telemetryM.addData("velocity", PedroComponent.follower().getVelocity());
 
@@ -140,6 +169,7 @@ public class NextFTCTeleop extends NextFTCOpMode {
 
     @Override
     public void onStop() {
+        Shooter.INSTANCE.off.schedule();
         BindingManager.reset();
     }
 }

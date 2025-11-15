@@ -31,7 +31,8 @@ public class Shooter implements Subsystem {
     private double ppr = 28; // pulses per revolution (28 for 6k rpm)
     private double rpmToPPS = ppr / 60; // (rpm / 60) * ppr
 
-    public double targetSpeed = 4000;
+    public double targetSpeed = 2800;
+    public double upValue = 0;
 
     public Command off = new RunToVelocity(control, 0)
             .requires(this)
@@ -41,7 +42,8 @@ public class Shooter implements Subsystem {
             .named("ShooterOn");
 
     public void setSpeed(double rpm) {
-        targetSpeed = rpm;
+        rpm += upValue;
+        if (Math.abs(rpm - targetSpeed) > 5) targetSpeed = rpm;
 
         on = new RunToVelocity(control, targetSpeed * rpmToPPS)
                 .requires(this)
@@ -68,11 +70,10 @@ public class Shooter implements Subsystem {
     }
 
     public void setSpeedFromLinearSpeed(double speedIn) {
-        // linear speed to angular speed with a cubic regression
-        double a = 0.000680854;
-        double b = -0.303452;
-        double c = 46.16874;
-        double rpm = a * Math.pow(speedIn, 3) + b * Math.pow(speedIn, 2) + c * speedIn;
+        // linear speed to angular speed with a linear regression
+        double a = 9.15169;
+        double b = 1025.61658;
+        double rpm = a * speedIn + b;
 
         setSpeed(rpm);
     }
@@ -104,8 +105,13 @@ public class Shooter implements Subsystem {
         return motors.getVelocity() / rpmToPPS;
     }
 
+    public double getTargetSpeed() {
+        return targetSpeed;
+    }
+
     @Override
     public void periodic() {
-        motors.setPower(control.calculate(motors.getState()));
+        if (Math.abs(control.getGoal().getVelocity()) < 10) motors.setPower(0);
+        else motors.setPower(control.calculate(motors.getState()));
     }
 }

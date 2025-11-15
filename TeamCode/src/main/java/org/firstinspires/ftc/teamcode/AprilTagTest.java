@@ -73,7 +73,7 @@ public class AprilTagTest extends NextFTCTeleop {
                 () -> -0.05 * (36 - currentPose.y),
                 () -> -0.02 * (0 - currentPose.yaw),
                 () -> {
-                    if (!lost) return 0.01 * (0 - currentPose.bearing);
+                    if (!lost) return 0.02 * (0 - currentPose.bearing);
                     else return (double) 0;
                 }
         );

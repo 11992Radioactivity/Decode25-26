@@ -56,8 +56,8 @@ public class Constants {
 
     // TODO: FIND NEW POSITIONS AFTER MOVING DRIVE MOTORS BACK
     public static PinpointConstants localizerConstants = new PinpointConstants()
-            .forwardPodY(1.32)
-            .strafePodX(-3.56)
+            .forwardPodY(1.32)//-0.964)//0.879)//1.32)
+            .strafePodX(-3.56)//2.217)//-2.696)//-3.56)
             .distanceUnit(DistanceUnit.INCH)
             .hardwareMapName("pinpoint")
             .encoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD)

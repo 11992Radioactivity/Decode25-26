@@ -27,12 +27,22 @@ public class AprilTagCamera {
     public AprilTagCamera(HardwareMap hw, JoinedTelemetry telemetry) {
         this.telemetry = telemetry;
 
+        /*
+        Focals (pixels) - Fx: 680.441 Fy: 680.441
+        Optical center - Cx: 294.849 Cy: 176.897
+        Radial distortion (Brown's Model)
+        K1: -0.42101 K2: 0.169578 K3: 0.0583968
+        P1: -0.000516989 P2: 0.00647042
+        Skew: 0
+         */
+
         aprilTagProcessor = new AprilTagProcessor.Builder()
                 .setDrawTagID(true)
                 .setDrawTagOutline(true)
                 .setDrawAxes(true)
                 .setDrawCubeProjection(true)
                 .setOutputUnits(DistanceUnit.INCH, AngleUnit.DEGREES)
+                .setLensIntrinsics(680.441, 680.441, 294.849, 176.897)
                 .build();
 
         visionPortal = new VisionPortal.Builder()
