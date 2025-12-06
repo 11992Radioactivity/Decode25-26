@@ -61,8 +61,8 @@ public class NextFTCTeleop extends NextFTCOpMode {
         Shooter.INSTANCE.off.schedule();
 
         PedroComponent.follower().setStartingPose(new Pose(72, 72));
-        if (onBlue) goalPose = new Pose(0, 144);
-        else goalPose = new Pose(144, 144);
+        if (onBlue) goalPose = new Pose(4, 132);
+        else goalPose = new Pose(144, 136);
 
         Drawing.init();
 
@@ -141,6 +141,14 @@ public class NextFTCTeleop extends NextFTCOpMode {
                     autoAim = false;
                     Shooter.INSTANCE.off.schedule();
                 });
+
+        /*gp1.dpadUp().whenBecomesTrue(() -> {
+            if (autoAim) Shooter.INSTANCE.setSpeed(Shooter.INSTANCE.targetSpeed + 25);
+        });
+
+        gp1.dpadDown().whenBecomesTrue(() -> {
+            if (autoAim) Shooter.INSTANCE.setSpeed(Shooter.INSTANCE.targetSpeed - 25);
+        });*/
     }
 
     @Override
@@ -151,6 +159,8 @@ public class NextFTCTeleop extends NextFTCOpMode {
         // TODO: Test shooting while moving
         if (autoAim) { // update shooter speed outside of just when you press the button
             Shooter.INSTANCE.setSpeedFromDistance(dist);
+
+            targetHeading = goalPose.getAsVector().minus(PedroComponent.follower().getPose().getAsVector()).getTheta();
             // scheduling new speed command every frame is fine because
             // command manager just cancels old commands that are doing the same thing
         }

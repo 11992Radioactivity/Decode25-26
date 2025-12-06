@@ -24,7 +24,7 @@ public class FlyWheelSubsystemTest extends NextFTCOpMode {
     ElapsedTime timer;
     // far goal = 3400, close = 2400, tip of close = 2800
     // rpm = 0.0718987(dist^2) + 0.326309(dist) + 2325.5
-    double min_speed = 1000;
+    double min_speed = 2000;
     double max_speed = 3200;
 
     @Override
@@ -38,13 +38,15 @@ public class FlyWheelSubsystemTest extends NextFTCOpMode {
     public void onUpdate() {
         if (timer.seconds() > 2.5) {
             Shooter.INSTANCE.setSpeed(max_speed);
-        } else if (timer.seconds() > 5) {
+        }
+        if (timer.seconds() > 5) {
             Shooter.INSTANCE.setSpeed(min_speed);
             timer.reset();
         }
 
         joinedTelemetry.addData("Shooter target", Shooter.INSTANCE.getTargetSpeed());
         joinedTelemetry.addData("Shooter current", Shooter.INSTANCE.getCurrentSpeed());
+        joinedTelemetry.addData("timer", timer.seconds());
         joinedTelemetry.update();
     }
 

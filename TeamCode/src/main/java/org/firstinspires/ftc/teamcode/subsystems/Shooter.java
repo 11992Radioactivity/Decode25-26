@@ -2,10 +2,12 @@ package org.firstinspires.ftc.teamcode.subsystems;
 
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.Vector;
+import com.qualcomm.robotcore.hardware.VoltageSensor;
 
 import dev.nextftc.control.ControlSystem;
 import dev.nextftc.core.commands.Command;
 import dev.nextftc.core.subsystems.Subsystem;
+import dev.nextftc.ftc.ActiveOpMode;
 import dev.nextftc.hardware.controllable.MotorGroup;
 import dev.nextftc.hardware.controllable.RunToVelocity;
 import dev.nextftc.hardware.impl.MotorEx;
@@ -17,15 +19,17 @@ public class Shooter implements Subsystem {
 
     // set as many motors as you want with one line of code
     private MotorGroup motors = new MotorGroup(
-            new MotorEx("FlyWheelR") // right is leader because it doesn't have to be reversed
+            (new MotorEx("FlyWheelR")).floatMode() // right is leader because it doesn't have to be reversed
             //(new MotorEx("FlyWheelL")).reversed()
     );
+
+    VoltageSensor voltageSensor = ActiveOpMode.hardwareMap().voltageSensor.iterator().next();
 
     // - feedforward is good for general use but doesn't react fast
     // - pid is good for fast reaction but goes to 0 at setpoint which is bad for flywheel
     // solution = combine both for ultimate flywheel controller
     private ControlSystem control = ControlSystem.builder()
-            .basicFF(0.0042 / 12, 0, 2.1438978259089394 / 12) // power proportional to speed
+            .basicFF(0.0053 / voltageSensor.getVoltage(), 0, 1.7642 / voltageSensor.getVoltage()) // power proportional to speed
             .velPid(0.005) // power proportional to distance between current and set speed
             .build();
 
@@ -72,8 +76,8 @@ public class Shooter implements Subsystem {
 
     public void setSpeedFromLinearSpeed(double speedIn) {
         // linear speed to angular speed with a linear regression
-        double a = 9.15169;
-        double b = 1025.61658;
+        double a = 13.76347;
+        double b = -93.76943;
         double rpm = a * speedIn + b;
 
         setSpeed(rpm);
@@ -112,7 +116,7 @@ public class Shooter implements Subsystem {
 
     @Override
     public void periodic() {
-        if (Math.abs(control.getGoal().getVelocity()) < 10) motors.setPower(0);
+        if (Math.abs(control.getGoal().getVelocity() - motors.getVelocity()) < 0) motors.setPower(0);
         else motors.setPower(control.calculate(motors.getState()));
     }
 }

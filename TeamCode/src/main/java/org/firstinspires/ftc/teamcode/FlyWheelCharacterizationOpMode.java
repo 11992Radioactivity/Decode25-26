@@ -28,7 +28,7 @@ public class FlyWheelCharacterizationOpMode extends NextFTCOpMode {
     ElapsedTime loopTimer;
     VoltageSensor voltageSensor;
 
-    double runtime = 10;
+    double runtime = 30;
     double volts = 0;
     double voltRate = 12 / runtime;
     double velSum = 0;
