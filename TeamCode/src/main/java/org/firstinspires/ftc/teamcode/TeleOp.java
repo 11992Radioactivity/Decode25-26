@@ -5,10 +5,10 @@ import com.bylazar.gamepad.PanelsGamepad;
 import com.bylazar.telemetry.JoinedTelemetry;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.pedropathing.geometry.Pose;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.*;
+import org.firstinspires.ftc.teamcode.subsystems.DataStorage;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 
 import dev.nextftc.bindings.BindingManager;
@@ -24,9 +24,8 @@ import dev.nextftc.hardware.driving.MecanumDriverControlled;
 import dev.nextftc.hardware.impl.CRServoEx;
 import dev.nextftc.hardware.impl.MotorEx;
 
-@TeleOp(name = "NextFTC TeleOp Program Java")
-public class NextFTCTeleop extends NextFTCOpMode {
-    public NextFTCTeleop() {
+public class TeleOp extends NextFTCOpMode {
+    public TeleOp() {
         addComponents(
                 BulkReadComponent.INSTANCE,
                 BindingsComponent.INSTANCE,
@@ -43,10 +42,10 @@ public class NextFTCTeleop extends NextFTCOpMode {
     private final GamepadManager panelsGamepad1 = PanelsGamepad.INSTANCE.getFirstManager();
     private final GamepadManager panelsGamepad2 = PanelsGamepad.INSTANCE.getSecondManager();
     private final MotorEx intake = new MotorEx("FlyWheelL");
-    private final CRServoEx transferL = new CRServoEx("TransferL");
-    private final CRServoEx transferR = new CRServoEx("TransferR");
+    //private final CRServoEx transferL = new CRServoEx("TransferL");
+    //private final CRServoEx transferR = new CRServoEx("TransferR");
 
-    private final boolean onBlue = true;
+    private final boolean onBlue = DataStorage.INSTANCE.onBlue;
     private boolean autoAim = false;
     private double targetHeading = 0;
     private boolean activeTurning = false;
@@ -60,7 +59,7 @@ public class NextFTCTeleop extends NextFTCOpMode {
     public void onStartButtonPressed() {
         Shooter.INSTANCE.off.schedule();
 
-        PedroComponent.follower().setStartingPose(new Pose(72, 72));
+        PedroComponent.follower().setStartingPose(DataStorage.INSTANCE.teleopStartPose);
         if (onBlue) goalPose = new Pose(4, 132);
         else goalPose = new Pose(144, 136);
 
@@ -121,6 +120,7 @@ public class NextFTCTeleop extends NextFTCOpMode {
                     intake.setPower(0);
                 });
 
+        /*
         gp1.x().toggleOnBecomesTrue()
                 .whenBecomesTrue(() -> {
                     transferL.setPower(1);
@@ -130,6 +130,7 @@ public class NextFTCTeleop extends NextFTCOpMode {
                     transferL.setPower(0);
                     transferR.setPower(0);
                 });
+         */
 
         gp1.a().toggleOnBecomesTrue()
                 .whenBecomesTrue(() -> {

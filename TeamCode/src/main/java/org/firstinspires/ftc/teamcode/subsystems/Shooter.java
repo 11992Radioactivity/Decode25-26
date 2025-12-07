@@ -4,8 +4,11 @@ import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.Vector;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 
+import java.util.function.DoubleSupplier;
+
 import dev.nextftc.control.ControlSystem;
 import dev.nextftc.core.commands.Command;
+import dev.nextftc.core.commands.groups.SequentialGroup;
 import dev.nextftc.core.subsystems.Subsystem;
 import dev.nextftc.ftc.ActiveOpMode;
 import dev.nextftc.hardware.controllable.MotorGroup;
@@ -45,6 +48,27 @@ public class Shooter implements Subsystem {
     public Command on = new RunToVelocity(control, targetSpeed * rpmToPPS)
             .requires(this)
             .named("ShooterOn");
+
+    // weird thing only for auto
+    public Command onFromDistSupplier(DoubleSupplier dist) {
+        return new Command() {
+                @Override
+                public boolean isDone() {
+                    setSpeedFromDistance(dist.getAsDouble());
+                    return true;
+                }
+            };
+    }
+
+    public Command setSpeedCommand(double rpm) {
+        return new Command() {
+            @Override
+            public boolean isDone() {
+                setSpeed(rpm);
+                return true;
+            }
+        };
+    }
 
     public void setSpeed(double rpm) {
         rpm += upValue;
