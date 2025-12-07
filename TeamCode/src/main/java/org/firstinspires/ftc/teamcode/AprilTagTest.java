@@ -12,13 +12,14 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagPoseFtc;
 import java.util.List;
 
 import dev.nextftc.extensions.pedro.PedroComponent;
+import dev.nextftc.ftc.NextFTCOpMode;
 import dev.nextftc.ftc.components.BulkReadComponent;
 import dev.nextftc.hardware.driving.DriverControlledCommand;
 import dev.nextftc.hardware.driving.MecanumDriverControlled;
 import dev.nextftc.hardware.impl.MotorEx;
 
 @TeleOp
-public class AprilTagTest extends NextFTCTeleop {
+public class AprilTagTest extends NextFTCOpMode {
     public AprilTagTest() {
         addComponents(
                 BulkReadComponent.INSTANCE,
