@@ -13,7 +13,6 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 import org.firstinspires.ftc.teamcode.pedroPathing.*;
 import org.firstinspires.ftc.teamcode.subsystems.DataStorage;
-import org.firstinspires.ftc.teamcode.subsystems.Lift;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 import org.psilynx.psikit.core.Logger;
 import org.psilynx.psikit.core.rlog.RLOGServer;
@@ -41,8 +40,8 @@ import dev.nextftc.hardware.impl.MotorEx;
 // inspired by frc 1690 2024 auto shooter
 @TeleOp
 @Disabled
-public class MainTeleOp extends NextFTCOpMode {
-    public MainTeleOp() {
+public class AutoTeleOp extends NextFTCOpMode {
+    public AutoTeleOp() {
         addComponents(
                 BulkReadComponent.INSTANCE,
                 BindingsComponent.INSTANCE,

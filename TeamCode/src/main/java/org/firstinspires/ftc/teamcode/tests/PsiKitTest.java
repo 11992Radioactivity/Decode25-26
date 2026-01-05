@@ -1,6 +1,6 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.tests;
 
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.psilynx.psikit.core.rlog.RLOGServer;
@@ -10,6 +10,7 @@ import org.psilynx.psikit.core.Logger;
 import org.psilynx.psikit.ftc.PsiKitOpMode;
 
 @TeleOp
+@Disabled
 public class PsiKitTest extends PsiKitOpMode {
     @Override
     public void psiKit_init() {

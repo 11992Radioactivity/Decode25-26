@@ -1,17 +1,17 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.tests;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
 //import dev.nextftc.control.feedback.PIDCoefficients;
 //import dev.nextftc.control.feedback.PIDController;
 
 
 @TeleOp
+@Disabled
 public class FlyWheelTestAS extends LinearOpMode {
     private DcMotorEx flywheelL;
     private DcMotorEx flywheelR;

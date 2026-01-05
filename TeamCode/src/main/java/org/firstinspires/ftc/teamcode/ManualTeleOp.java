@@ -5,7 +5,9 @@ import com.bylazar.gamepad.PanelsGamepad;
 import com.bylazar.telemetry.JoinedTelemetry;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.pedropathing.ftc.FTCCoordinates;
+import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
+import com.pedropathing.paths.PathChain;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -13,6 +15,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.*;
 import org.firstinspires.ftc.teamcode.subsystems.DataStorage;
 import org.firstinspires.ftc.teamcode.subsystems.Lift;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
+import org.firstinspires.ftc.teamcode.subsystems.UtilFunctions;
 import org.psilynx.psikit.core.Logger;
 import org.psilynx.psikit.core.rlog.RLOGServer;
 import org.psilynx.psikit.core.rlog.RLOGWriter;
@@ -30,6 +33,7 @@ import dev.nextftc.core.commands.groups.SequentialGroup;
 import dev.nextftc.core.components.BindingsComponent;
 import dev.nextftc.core.components.SubsystemComponent;
 import dev.nextftc.core.units.Angle;
+import dev.nextftc.extensions.pedro.FollowPath;
 import dev.nextftc.extensions.pedro.PedroComponent;
 import dev.nextftc.ftc.ActiveOpMode;
 import dev.nextftc.ftc.GamepadEx;
@@ -62,12 +66,16 @@ public class ManualTeleOp extends NextFTCOpMode {
     private GamepadManager panelsGamepad1;
     private GamepadManager panelsGamepad2;
 
+    private DriverControlledCommand driverControlled;
+
     private boolean onBlue = true;
     private boolean autoAim = false;
     private double targetHeading = 0;
     private boolean activeTurning = false;
     private ElapsedTime turnTimer = new ElapsedTime();
     private double DIST_ADJUST = 6;
+    private boolean intake_on = false;
+    private boolean transfer_on = false;
 
     //TODO: MUST TURN OFF DURING COMPETITION
     private boolean log_server = true;
@@ -78,12 +86,16 @@ public class ManualTeleOp extends NextFTCOpMode {
 
     @Override
     public void onInit() {
+        Shooter.INSTANCE.off.schedule();
+
         SimpleDateFormat fmt = new SimpleDateFormat("MM_dd_yyyy_HH_mm", Locale.US);
         String filename = fmt.format(new Date());
         Logger.addDataReceiver(new RLOGWriter(filename + ".rlog"));
 
+        // TODO: Figure out FTCDashboard protocol so it shows up on AdvantageScope
+        // because rn putting 192.168.43.1 is just waiting forever
         if (log_server) {
-            RLOGServer server = new RLOGServer(50000);
+            RLOGServer server = new RLOGServer();
             server.start();
             Logger.addDataReceiver(server);
         }
@@ -114,7 +126,7 @@ public class ManualTeleOp extends NextFTCOpMode {
         GamepadEx gp1 = new GamepadEx(() -> panelsGamepad1.asCombinedFTCGamepad(ActiveOpMode.gamepad1()));
         GamepadEx gp2 = new GamepadEx(() -> panelsGamepad2.asCombinedFTCGamepad(ActiveOpMode.gamepad2()));
 
-        DriverControlledCommand driverControlled = new MecanumDriverControlled(
+        driverControlled = new MecanumDriverControlled(
                 frontLeftMotor,
                 frontRightMotor,
                 backLeftMotor,
@@ -169,25 +181,48 @@ public class ManualTeleOp extends NextFTCOpMode {
                 .whenBecomesTrue(() -> {
                     if (autoAim) {
                         shootCommand.schedule();
+
+                        intake_on = true;
+                        transfer_on = true;
                     } else {
                         intake.setPower(-1);
                         transfer.setPower(0);
                         Shooter.INSTANCE.closeGate.schedule();
+
+                        intake_on = true;
+                        transfer_on = false;
                     }
                 })
                 .whenBecomesFalse(() -> {
                     intake.setPower(0);
                     transfer.setPower(0);
                     Shooter.INSTANCE.closeGate.schedule();
+
+                    intake_on = false;
+                    transfer_on = false;
                 });
 
-        /*gp1.x().toggleOnBecomesTrue()
+        // on press, override driver control and go to park,
+        // on off reschedule driver control
+        gp1.x().toggleOnBecomesTrue()
                 .whenBecomesTrue(() -> {
-                    Lift.INSTANCE.liftUp.schedule();
+                    Pose basePose = new Pose(
+                            onBlue ? 105 : 38.5,
+                            33.5
+                    );
+                    PathChain toBase = PedroComponent.follower()
+                            .pathBuilder()
+                            .addPath(
+                                    new BezierLine(PedroComponent.follower().getPose(), basePose)
+                            )
+                            .setLinearHeadingInterpolation(PedroComponent.follower().getHeading(), 0)
+                            .build();
+                    Command moveCommand = new FollowPath(toBase);
+                    moveCommand.schedule();
                 })
                 .whenBecomesFalse(() -> {
-                    Lift.INSTANCE.liftDown.schedule();
-                });*/
+                    driverControlled.schedule();
+                });
 
         gp1.a().toggleOnBecomesTrue()
                 .whenBecomesTrue(() -> {
@@ -198,6 +233,9 @@ public class ManualTeleOp extends NextFTCOpMode {
                 .whenBecomesFalse(() -> {
                     autoAim = false;
                     Shooter.INSTANCE.off.schedule();
+                    transfer.setPower(0);
+                    Shooter.INSTANCE.closeGate.schedule();
+                    transfer_on = false;
                 });
 
         /*gp1.dpadUp().whenBecomesTrue(() -> {
@@ -219,12 +257,17 @@ public class ManualTeleOp extends NextFTCOpMode {
         double dist = PedroComponent.follower().getPose().distanceFrom(goalPose);
 
         // TODO: Test shooting while moving
-        if (autoAim) { // update shooter speed outside of just when you press the button
+        if (autoAim) {
+            // update shooter speed continuously
+            // - scheduling new speed command every frame is fine because
+            //   command manager just cancels old commands that are doing the same thing
             Shooter.INSTANCE.setSpeedFromDistance(dist + DIST_ADJUST);
 
             targetHeading = goalPose.getAsVector().minus(PedroComponent.follower().getPose().getAsVector()).getTheta();
-            // scheduling new speed command every frame is fine because
-            // command manager just cancels old commands that are doing the same thing
+
+            // prioritize powering shooter over others if both are on
+            UtilFunctions.currentLimitMotor(intake, (intake_on ? -1 : 0));
+            UtilFunctions.currentLimitMotor(transfer, (transfer_on ? -1 : 0));
         } else {
             Shooter.INSTANCE.closeGate.schedule();
         }
