@@ -14,30 +14,48 @@ import dev.nextftc.ftc.ActiveOpMode;
 import dev.nextftc.hardware.controllable.MotorGroup;
 import dev.nextftc.hardware.controllable.RunToVelocity;
 import dev.nextftc.hardware.impl.MotorEx;
+import dev.nextftc.hardware.impl.ServoEx;
+import dev.nextftc.hardware.positionable.SetPosition;
 
 // https://medium.com/@vikramaditya.nishant/programming-a-decode-shooter-4ab114dac01f
 public class Shooter implements Subsystem {
-    public static final Shooter INSTANCE = new Shooter();
+    public final static Shooter INSTANCE = new Shooter();
     private Shooter() {}
+
+    // use equation VS. use InterpLUT to compute velocity
+    private boolean usePhysics = true;
+
+    InterpolatedLookupTable interplut = new InterpolatedLookupTable(
+            43.8, 2250,
+            55.9, 2450,
+            68.25, 2575,
+            85.6, 2725,
+            101.8, 2975,
+            143.3, 3550,
+            157.5, 3800
+    );
 
     // set as many motors as you want with one line of code
     private MotorGroup motors = new MotorGroup(
-            (new MotorEx("FlyWheelR")).floatMode() // right is leader because it doesn't have to be reversed
-            //(new MotorEx("FlyWheelL")).reversed()
+            (new MotorEx("FlyWheelR")).floatMode(), // right is leader because it doesn't have to be reversed
+            (new MotorEx("FlyWheelL")).reversed().floatMode()
     );
-
-    VoltageSensor voltageSensor = ActiveOpMode.hardwareMap().voltageSensor.iterator().next();
+    private ServoEx gate = new ServoEx("Gate");
+    private ServoEx light = new ServoEx("Indicator");
 
     // - feedforward is good for general use but doesn't react fast
     // - pid is good for fast reaction but goes to 0 at setpoint which is bad for flywheel
     // solution = combine both for ultimate flywheel controller
     private ControlSystem control = ControlSystem.builder()
-            .basicFF(0.0053 / voltageSensor.getVoltage(), 0, 1.7642 / voltageSensor.getVoltage()) // power proportional to speed
-            .velPid(0.005) // power proportional to distance between current and set speed
+            .basicFF(0.0054 / 12, 0, 2.945 / 12) // power proportional to speed
+            .velPid(0.01) // power proportional to distance between current and set speed
             .build();
 
     private double ppr = 28; // pulses per revolution (28 for 6k rpm)
     private double rpmToPPS = ppr / 60; // (rpm / 60) * ppr
+
+    private double gate_closed = 0.0;
+    private double gate_opened = 0.4;
 
     public double targetSpeed = 2800;
     public double upValue = 0;
@@ -48,6 +66,15 @@ public class Shooter implements Subsystem {
     public Command on = new RunToVelocity(control, targetSpeed * rpmToPPS)
             .requires(this)
             .named("ShooterOn");
+    public Command openGate = new SetPosition(gate, gate_opened);
+    public Command closeGate = new SetPosition(gate, gate_closed);
+
+    public void setVoltage(double voltage) {
+        control = ControlSystem.builder()
+                .basicFF(0.00506 / voltage, 0, 2.8222 / voltage)
+                .velPid(0.01)
+                .build();
+    }
 
     // weird thing only for auto
     public Command onFromDistSupplier(DoubleSupplier dist) {
@@ -98,7 +125,7 @@ public class Shooter implements Subsystem {
         return linearSpeed;
     }
 
-    public void setSpeedFromLinearSpeed(double speedIn) {
+    private void setSpeedFromLinearSpeed(double speedIn) {
         // linear speed to angular speed with a linear regression
         double a = 13.76347;
         double b = -93.76943;
@@ -108,8 +135,12 @@ public class Shooter implements Subsystem {
     }
 
     public void setSpeedFromDistance(double distIn) {
-        double linearSpeed = getSpeedFromDistance(distIn);
-        setSpeedFromLinearSpeed(linearSpeed);
+        if (usePhysics) {
+            double linearSpeed = getSpeedFromDistance(distIn);
+            setSpeedFromLinearSpeed(linearSpeed);
+        } else {
+            setSpeed(interplut.get(distIn));
+        }
     }
 
     // set speed by subtracting velocity from goal position
@@ -130,6 +161,10 @@ public class Shooter implements Subsystem {
         setSpeedFromLinearSpeed(linearSpeed);
     }
 
+    public boolean atTargetSpeed(double tolerance) {
+        return Math.abs(getTargetSpeed() - getCurrentSpeed()) < tolerance;
+    }
+
     public double getCurrentSpeed() {
         return motors.getVelocity() / rpmToPPS;
     }
@@ -140,7 +175,22 @@ public class Shooter implements Subsystem {
 
     @Override
     public void periodic() {
-        if (Math.abs(control.getGoal().getVelocity() - motors.getVelocity()) < 0) motors.setPower(0);
-        else motors.setPower(control.calculate(motors.getState()));
+        if (Math.abs(control.getGoal().getVelocity() - motors.getVelocity()) < 0) {
+            motors.setPower(0);
+        } else {
+            motors.setPower(control.calculate(motors.getState()));
+        }
+
+        if (getCurrentSpeed() < 1500) {
+            light.setPosition(0);
+        } else {
+            if (atTargetSpeed(50)) {
+                light.setPosition(0.5); // Green
+            } else if (atTargetSpeed(500)) {
+                light.setPosition(0.39); // Yellow
+            } else {
+                light.setPosition(0.28); // Red
+            }
+        }
     }
 }

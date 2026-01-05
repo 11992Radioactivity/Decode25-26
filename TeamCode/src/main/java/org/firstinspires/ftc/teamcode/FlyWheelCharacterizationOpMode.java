@@ -12,6 +12,7 @@ import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 import dev.nextftc.core.components.SubsystemComponent;
 import dev.nextftc.ftc.NextFTCOpMode;
 import dev.nextftc.ftc.components.BulkReadComponent;
+import dev.nextftc.hardware.controllable.MotorGroup;
 import dev.nextftc.hardware.impl.MotorEx;
 
 @TeleOp
@@ -23,7 +24,10 @@ public class FlyWheelCharacterizationOpMode extends NextFTCOpMode {
     }
 
     JoinedTelemetry joinedTelemetry = new JoinedTelemetry(telemetry, PanelsTelemetry.INSTANCE.getFtcTelemetry());
-    MotorEx motor = new MotorEx("FlyWheelR");
+    private MotorGroup motors = new MotorGroup(
+            (new MotorEx("FlyWheelR")).floatMode(), // right is leader because it doesn't have to be reversed
+            (new MotorEx("FlyWheelL")).reversed().floatMode()
+    );
     ElapsedTime timer;
     ElapsedTime loopTimer;
     VoltageSensor voltageSensor;
@@ -49,7 +53,7 @@ public class FlyWheelCharacterizationOpMode extends NextFTCOpMode {
         double dt = loopTimer.seconds();
         loopTimer.reset();
 
-        double vel = motor.getVelocity();
+        double vel = motors.getVelocity();
 
         // only collect data up until time is up
         if (timer.seconds() < runtime) {
@@ -64,9 +68,9 @@ public class FlyWheelCharacterizationOpMode extends NextFTCOpMode {
                 count++;
             }
 
-            motor.setPower(volts / voltageSensor.getVoltage());
+            motors.setPower(volts / voltageSensor.getVoltage());
         } else {
-            motor.setPower(0);
+            motors.setPower(0);
             volts = 0;
         }
 
@@ -74,7 +78,7 @@ public class FlyWheelCharacterizationOpMode extends NextFTCOpMode {
         double ks = (voltSum / count) - (kv * velSum) / count;
 
         joinedTelemetry.addData("voltage", volts);
-        joinedTelemetry.addData("velocity", vel);
+        joinedTelemetry.addData("velocity (ticks/sec)", vel);
         joinedTelemetry.addData("kv (divide by 12 to make for power in (-1, 1) rather than volts)", kv);
         joinedTelemetry.addData("ks (divide by 12 for same reason)", ks);
         joinedTelemetry.update();

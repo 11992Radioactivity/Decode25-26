@@ -21,14 +21,16 @@ import dev.nextftc.core.commands.delays.WaitUntil;
 import dev.nextftc.core.commands.groups.ParallelGroup;
 import dev.nextftc.core.commands.groups.SequentialGroup;
 import dev.nextftc.core.components.SubsystemComponent;
+import dev.nextftc.core.units.Angle;
 import dev.nextftc.extensions.pedro.FollowPath;
 import dev.nextftc.extensions.pedro.PedroComponent;
+import dev.nextftc.extensions.pedro.TurnTo;
 import dev.nextftc.ftc.NextFTCOpMode;
 import dev.nextftc.ftc.components.BulkReadComponent;
 import dev.nextftc.hardware.impl.MotorEx;
 import dev.nextftc.hardware.powerable.SetPower;
 
-@Autonomous(name = "Blue Far 15 Gate Auto", preselectTeleOp = "TeleOp")
+@Autonomous(name = "Blue Far 15 Gate Auto", preselectTeleOp = "ManualTeleOp")
 public class BlueFar15GateAuto extends NextFTCOpMode {
     public BlueFar15GateAuto() {
         addComponents(
@@ -71,7 +73,7 @@ public class BlueFar15GateAuto extends NextFTCOpMode {
             Grab1Init = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(56.000, 84.000), new Pose(56.000, 84.000))
+                            new BezierLine(new Pose(56.000, 84.000), new Pose(56.000, 80.000))
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(180))
                     .build();
@@ -79,7 +81,7 @@ public class BlueFar15GateAuto extends NextFTCOpMode {
             Grab1Grab = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(56.000, 84.000), new Pose(18.000, 84.000))
+                            new BezierLine(new Pose(56.000, 84.000), new Pose(14.000, 84.000))
                     )
                     .setTangentHeadingInterpolation()
                     .build();
@@ -95,7 +97,7 @@ public class BlueFar15GateAuto extends NextFTCOpMode {
             Grab2Init = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(56.000, 84.000), new Pose(56.000, 60.000))
+                            new BezierLine(new Pose(56.000, 84.000), new Pose(56.000, 56.000))
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(180))
                     .build();
@@ -103,7 +105,7 @@ public class BlueFar15GateAuto extends NextFTCOpMode {
             Grab2Grab = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(56.000, 60.000), new Pose(18.000, 60.000))
+                            new BezierLine(new Pose(56.000, 60.000), new Pose(4.000, 60.000))
                     )
                     .setTangentHeadingInterpolation()
                     .build();
@@ -139,7 +141,7 @@ public class BlueFar15GateAuto extends NextFTCOpMode {
             Grab3Grab = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(56.000, 36.000), new Pose(18.000, 36.000))
+                            new BezierLine(new Pose(56.000, 36.000), new Pose(4.000, 36.000))
                     )
                     .setTangentHeadingInterpolation()
                     .build();
@@ -155,14 +157,14 @@ public class BlueFar15GateAuto extends NextFTCOpMode {
             Grab4Init = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(56.000, 84.000), new Pose(12.000, 20.000))
+                            new BezierLine(new Pose(56.000, 84.000), new Pose(16.000, 20.000))
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(225))
                     .build();
 
             Grab4Grab = follower
                     .pathBuilder()
-                    .addPath(new BezierLine(new Pose(12.000, 20.000), new Pose(8.000, 8.000)))
+                    .addPath(new BezierLine(new Pose(16.000, 20.000), new Pose(16.000, 10.000)))
                     .setLinearHeadingInterpolation(Math.toRadians(225), Math.toRadians(270))
                     .build();
 
@@ -182,24 +184,20 @@ public class BlueFar15GateAuto extends NextFTCOpMode {
         }
     }
 
-
     private ElapsedTime timer = new ElapsedTime();
 
     private Pose goalPose = new Pose(4, 132);
 
-    private MotorEx intake = new MotorEx("FlyWheelL");
+    private MotorEx intake = new MotorEx("Intake");
     private Command intakeOn = new SetPower(intake, -1);
     private Command intakeOff = new SetPower(intake, 0);
 
     private Command shoot = new SequentialGroup(
-            Shooter.INSTANCE.onFromDistSupplier(() -> PedroComponent.follower().getPose().distanceFrom(goalPose)),
-            new WaitUntil(() -> Shooter.INSTANCE.on.isDone()),
+            Shooter.INSTANCE.openGate,
+            new Delay(0.5),
             intakeOn,
             new Delay(1),
-            new ParallelGroup(
-                    Shooter.INSTANCE.setSpeedCommand(0),
-                    intakeOff
-            )
+            new ParallelGroup(Shooter.INSTANCE.closeGate, intakeOff)
     );
 
     @Override
@@ -211,31 +209,31 @@ public class BlueFar15GateAuto extends NextFTCOpMode {
         Paths paths = new Paths();
 
         new SequentialGroup(
-                new FollowPath(paths.Shoot1, true, 0.5),
+                Shooter.INSTANCE.setSpeedCommand(2800),
+                new FollowPath(paths.Shoot1),
                 shoot, //shoot
                 new FollowPath(paths.Grab1Init),
                 intakeOn,
-                new FollowPath(paths.Grab1Grab, true, 0.5),
+                new FollowPath(paths.Grab1Grab),
                 intakeOff,
                 new FollowPath(paths.Shoot2),
                 shoot, //shoot
                 new FollowPath(paths.Grab2Init),
                 intakeOn,
-                new FollowPath(paths.Grab2Grab, true, 0.5),
+                new FollowPath(paths.Grab2Grab),
                 intakeOff,
-                new FollowPath(paths.GatePush, true, 0.5),
-                new Delay(1),
+                new FollowPath(paths.GatePush, true, 0.8),
                 new FollowPath(paths.Shoot3),
                 shoot, //shoot
                 new FollowPath(paths.Grab3Init),
                 intakeOn,
-                new FollowPath(paths.Grab3Grab, true, 0.5),
+                new FollowPath(paths.Grab3Grab),
                 intakeOff,
                 new FollowPath(paths.Shoot4),
                 shoot, //shoot
                 new FollowPath(paths.Grab4Init),
                 intakeOn,
-                new FollowPath(paths.Grab4Grab, true, 0.5),
+                new FollowPath(paths.Grab4Grab),
                 intakeOff,
                 new FollowPath(paths.Shoot5),
                 shoot, //shoot

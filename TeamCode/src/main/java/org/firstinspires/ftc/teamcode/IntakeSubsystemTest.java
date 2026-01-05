@@ -32,7 +32,7 @@ public class IntakeSubsystemTest extends NextFTCOpMode {
     public void onStartButtonPressed() {
         timer = new ElapsedTime();
 
-        (new MotorEx("FlyWheelL")).setPower(-1);
+        (new MotorEx("Intake")).setPower(-1);
     }
 
     @Override
