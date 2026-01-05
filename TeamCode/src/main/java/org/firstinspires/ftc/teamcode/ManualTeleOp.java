@@ -1,9 +1,12 @@
 package org.firstinspires.ftc.teamcode;
 
+import android.util.Log;
+
 import com.bylazar.gamepad.GamepadManager;
 import com.bylazar.gamepad.PanelsGamepad;
 import com.bylazar.telemetry.JoinedTelemetry;
 import com.bylazar.telemetry.PanelsTelemetry;
+import com.pedropathing.control.KalmanFilter;
 import com.pedropathing.ftc.FTCCoordinates;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
@@ -12,10 +15,12 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.*;
+import org.firstinspires.ftc.teamcode.subsystems.AprilTagCamera;
 import org.firstinspires.ftc.teamcode.subsystems.DataStorage;
 import org.firstinspires.ftc.teamcode.subsystems.Lift;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 import org.firstinspires.ftc.teamcode.subsystems.UtilFunctions;
+import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.psilynx.psikit.core.Logger;
 import org.psilynx.psikit.core.rlog.RLOGServer;
 import org.psilynx.psikit.core.rlog.RLOGWriter;
@@ -24,6 +29,7 @@ import org.psilynx.psikit.core.wpi.math.Rotation2d;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 import dev.nextftc.bindings.BindingManager;
@@ -67,6 +73,7 @@ public class ManualTeleOp extends NextFTCOpMode {
     private GamepadManager panelsGamepad1;
     private GamepadManager panelsGamepad2;
     private DriverControlledCommand driverControlled;
+    private AprilTagCamera camera;
 
     // non constant variables
     private boolean onBlue = true;
@@ -81,6 +88,7 @@ public class ManualTeleOp extends NextFTCOpMode {
     // constant variables
     private final boolean log_server = true; //TODO: MUST TURN OFF DURING COMPETITION
     private final boolean use_triggers_for_sideways = false;
+    private final boolean relocalize_on_shoot = false;
     private Pose goalPose;
     private final double autoAimGain = 1.0 / 45.0; // 1 / (point to slow down at after reaching)
 
@@ -112,6 +120,7 @@ public class ManualTeleOp extends NextFTCOpMode {
         telemetryM = new JoinedTelemetry(telemetry, PanelsTelemetry.INSTANCE.getFtcTelemetry());
         panelsGamepad1 = PanelsGamepad.INSTANCE.getFirstManager();
         panelsGamepad2 = PanelsGamepad.INSTANCE.getSecondManager();
+        camera = new AprilTagCamera(hardwareMap);
 
         Shooter.INSTANCE.off.schedule();
 
@@ -257,6 +266,9 @@ public class ManualTeleOp extends NextFTCOpMode {
         BindingManager.update();
         double dist = PedroComponent.follower().getPose().distanceFrom(goalPose);
 
+        Pose robotPoseCamera = new Pose();
+        boolean cameraFoundTag = false;
+
         // TODO: Test shooting while moving
         if (autoAim) {
             // update shooter speed continuously
@@ -269,26 +281,56 @@ public class ManualTeleOp extends NextFTCOpMode {
             // prioritize powering shooter over others if both are on
             UtilFunctions.currentLimitMotor(intake, (intake_on ? -1 : 0));
             UtilFunctions.currentLimitMotor(transfer, (transfer_on ? -1 : 0));
+
+            camera.update();
+            List<AprilTagDetection> tags = camera.getDetections();
+
+            if (!tags.isEmpty()) {
+                AprilTagDetection tag = null;
+                for (AprilTagDetection d : tags) {
+                    if (d.id == 20 || d.id == 24) { // don't track from obelisk
+                        tag = d;
+                        break;
+                    }
+                }
+
+                // found tag
+                if (tag != null) {
+                    robotPoseCamera = camera.getRobotPoseFromTag(tag);
+                    cameraFoundTag = true;
+                }
+
+                // relocalize if not moving so position isn't skewed
+                if (relocalize_on_shoot && PedroComponent.follower().getVelocity().getMagnitude() < 0.1 && Math.abs(targetHeading - PedroComponent.follower().getHeading()) < Math.toRadians(20)) {
+                    PedroComponent.follower().setPose(robotPoseCamera);
+                }
+            }
         } else {
             Shooter.INSTANCE.closeGate.schedule();
         }
 
-        telemetryM.addData("angle vel", PedroComponent.follower().getAngularVelocity());
         telemetryM.addData("target heading", targetHeading);
-        telemetryM.addData("shooter  vel", Shooter.INSTANCE.getCurrentSpeed());
+        telemetryM.addData("shooter vel", Shooter.INSTANCE.getCurrentSpeed());
         telemetryM.addData("shooter target", Shooter.INSTANCE.getTargetSpeed());
         telemetryM.addData("distance from goal", dist);
         telemetryM.addData("position", PedroComponent.follower().getPose());
+        telemetryM.addData("camera found tag?", cameraFoundTag);
+        telemetryM.addData("camera pose", robotPoseCamera);
         telemetryM.addData("velocity", PedroComponent.follower().getVelocity());
 
         Logger.recordOutput("OpMode/TargetHeading", targetHeading);
         Logger.recordOutput("OpMode/ShooterVelocity", Shooter.INSTANCE.getCurrentSpeed());
         Logger.recordOutput("OpMode/ShooterTarget", Shooter.INSTANCE.getTargetSpeed());
         Logger.recordOutput("OpMode/DistanceFromGoal", dist);
+        Logger.recordOutput("OpMode/CameraFoundTag", cameraFoundTag);
 
         Pose pose = PedroComponent.follower().getPose().getAsCoordinateSystem(FTCCoordinates.INSTANCE);
         Pose2d poseMeters = new Pose2d(pose.getX() / 39.37, pose.getY() / 39.37, new Rotation2d(pose.getHeading()));
         Logger.recordOutput("OpMode/PoseMeters", Pose2d.struct, poseMeters);
+
+        Pose cameraPose = robotPoseCamera.getAsCoordinateSystem(FTCCoordinates.INSTANCE);
+        Pose2d cameraPoseMeters = new Pose2d(cameraPose.getX() / 39.37, cameraPose.getY() / 39.37, new Rotation2d(cameraPose.getHeading()));
+        Logger.recordOutput("OpMode/CameraPoseMeters", Pose2d.struct, cameraPoseMeters);
 
         Drawing.drawDebug(PedroComponent.follower());
         telemetryM.update();

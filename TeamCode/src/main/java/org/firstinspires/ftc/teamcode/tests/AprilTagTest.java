@@ -38,7 +38,7 @@ public class AprilTagTest extends NextFTCOpMode {
     @Override
     public void onStartButtonPressed() {
         joinedTelemetry = new JoinedTelemetry(telemetry, PanelsTelemetry.INSTANCE.getFtcTelemetry());
-        camera = new AprilTagCamera(hardwareMap, joinedTelemetry);
+        camera = new AprilTagCamera(hardwareMap);
     }
 
     @Override
@@ -58,7 +58,7 @@ public class AprilTagTest extends NextFTCOpMode {
                 }
             }
             if (tag == null) return;
-            camera.displayTag(tag);
+            camera.displayTag(tag, joinedTelemetry);
             currentPose = tag.ftcPose;
         } else {
             lost = true;
