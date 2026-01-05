@@ -52,10 +52,11 @@ public class ManualTeleOp extends NextFTCOpMode {
                 BulkReadComponent.INSTANCE,
                 BindingsComponent.INSTANCE,
                 new PedroComponent(Constants::createFollower),
-                new SubsystemComponent(Shooter.INSTANCE)//, Lift.INSTANCE)
+                new SubsystemComponent(Shooter.INSTANCE)
         );
     }
 
+    // constant systems/components
     private final MotorEx frontLeftMotor = new MotorEx("front_left_motor").brakeMode();
     private final MotorEx frontRightMotor = new MotorEx("front_right_motor").brakeMode();
     private final MotorEx backLeftMotor = new MotorEx("back_left_motor").brakeMode();
@@ -65,9 +66,9 @@ public class ManualTeleOp extends NextFTCOpMode {
     private JoinedTelemetry telemetryM;
     private GamepadManager panelsGamepad1;
     private GamepadManager panelsGamepad2;
-
     private DriverControlledCommand driverControlled;
 
+    // non constant variables
     private boolean onBlue = true;
     private boolean autoAim = false;
     private double targetHeading = 0;
@@ -77,11 +78,10 @@ public class ManualTeleOp extends NextFTCOpMode {
     private boolean intake_on = false;
     private boolean transfer_on = false;
 
-    //TODO: MUST TURN OFF DURING COMPETITION
-    private boolean log_server = true;
-
+    // constant variables
+    private final boolean log_server = true; //TODO: MUST TURN OFF DURING COMPETITION
+    private final boolean use_triggers_for_sideways = false;
     private Pose goalPose;
-
     private final double autoAimGain = 1.0 / 45.0; // 1 / (point to slow down at after reaching)
 
     @Override
@@ -133,6 +133,7 @@ public class ManualTeleOp extends NextFTCOpMode {
                 backRightMotor,
                 gp1.leftStickY().negate().deadZone(0.3),
                 () -> { // use triggers to strafe
+                    if (!use_triggers_for_sideways) return gp1.leftStickX().deadZone(0.3).get() * (onBlue ? -1 : 0);
                     if (panelsGamepad1.asCombinedFTCGamepad(ActiveOpMode.gamepad1()).left_trigger > 0.3) {
                         return (double) -panelsGamepad1.asCombinedFTCGamepad(ActiveOpMode.gamepad1()).left_trigger;
                     } else if (panelsGamepad1.asCombinedFTCGamepad(ActiveOpMode.gamepad1()).right_trigger > 0.3) {
@@ -165,8 +166,8 @@ public class ManualTeleOp extends NextFTCOpMode {
                     //}
                     //double error = angle - PedroComponent.follower().getHeading();
                     //return 0.0 * Math.toDegrees(error);
-                }//,
-                //new FieldCentric(() -> Angle.fromRad(PedroComponent.follower().getHeading() + 180 * (onBlue ? 1 : 0)))
+                },
+                new FieldCentric(() -> Angle.fromRad(PedroComponent.follower().getHeading() + Math.PI * (onBlue ? 1 : 0)))
         );
         driverControlled.schedule();
 
