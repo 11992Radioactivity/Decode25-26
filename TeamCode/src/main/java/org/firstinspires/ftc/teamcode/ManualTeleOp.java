@@ -1,25 +1,21 @@
 package org.firstinspires.ftc.teamcode;
 
-import android.util.Log;
-
 import com.bylazar.gamepad.GamepadManager;
 import com.bylazar.gamepad.PanelsGamepad;
 import com.bylazar.telemetry.JoinedTelemetry;
 import com.bylazar.telemetry.PanelsTelemetry;
-import com.pedropathing.control.KalmanFilter;
+import com.pedropathing.control.LowPassFilter;
 import com.pedropathing.ftc.FTCCoordinates;
-import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
-import com.pedropathing.paths.PathChain;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.*;
 import org.firstinspires.ftc.teamcode.subsystems.AprilTagCamera;
 import org.firstinspires.ftc.teamcode.subsystems.DataStorage;
-import org.firstinspires.ftc.teamcode.subsystems.Lift;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 import org.firstinspires.ftc.teamcode.subsystems.UtilFunctions;
+import org.firstinspires.ftc.teamcode.subsystems.KalmanFilter;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.psilynx.psikit.core.Logger;
 import org.psilynx.psikit.core.rlog.RLOGServer;
@@ -39,7 +35,6 @@ import dev.nextftc.core.commands.groups.SequentialGroup;
 import dev.nextftc.core.components.BindingsComponent;
 import dev.nextftc.core.components.SubsystemComponent;
 import dev.nextftc.core.units.Angle;
-import dev.nextftc.extensions.pedro.FollowPath;
 import dev.nextftc.extensions.pedro.PedroComponent;
 import dev.nextftc.ftc.ActiveOpMode;
 import dev.nextftc.ftc.GamepadEx;
@@ -74,6 +69,17 @@ public class ManualTeleOp extends NextFTCOpMode {
     private GamepadManager panelsGamepad2;
     private DriverControlledCommand driverControlled;
     private AprilTagCamera camera;
+    private final LowPassFilter cameraPosXFilter = new LowPassFilter(0.6);
+    private final LowPassFilter cameraPosYFilter = new LowPassFilter(0.6);
+    private final LowPassFilter cameraHeadingFilter = new LowPassFilter(0.6);
+    // TODO: Chatgpt tuning variables, actually tune later
+    private final KalmanFilter cameraKalmanXFilter = new KalmanFilter(0.0004, 0.0025);
+    private final KalmanFilter cameraKalmanYFilter = new KalmanFilter(0.0004, 0.0025);
+    private final KalmanFilter cameraKalmanHeadingFilter = new KalmanFilter(
+            Math.pow(Math.toRadians(1), 2),
+            Math.pow(Math.toRadians(3), 2),
+            true
+    );
 
     // non constant variables
     private boolean onBlue = true;
@@ -84,13 +90,17 @@ public class ManualTeleOp extends NextFTCOpMode {
     private double DIST_ADJUST = 6;
     private boolean intake_on = false;
     private boolean transfer_on = false;
+    private boolean parking = false;
 
     // constant variables
     private final boolean log_server = true; //TODO: MUST TURN OFF DURING COMPETITION
-    private final boolean use_triggers_for_sideways = false;
-    private final boolean relocalize_on_shoot = false;
+    private final boolean relocalize_on_shoot = true;
     private Pose goalPose;
-    private final double autoAimGain = 1.0 / 45.0; // 1 / (point to slow down at after reaching)
+    private Pose basePose;
+    private final double autoAimGain = 1.0 / 30.0; // 1 / (point to slow down at after reaching)
+    private final double parkAdjust = 0.25;
+    private final double parkP = 0.05;
+    private final double parkF = 0.05;
 
     @Override
     public void onInit() {
@@ -122,13 +132,16 @@ public class ManualTeleOp extends NextFTCOpMode {
         panelsGamepad2 = PanelsGamepad.INSTANCE.getSecondManager();
         camera = new AprilTagCamera(hardwareMap);
 
-        Shooter.INSTANCE.off.schedule();
-
         onBlue = DataStorage.INSTANCE.onBlue;
         PedroComponent.follower().setStartingPose(DataStorage.INSTANCE.teleopStartPose);
         targetHeading = DataStorage.INSTANCE.teleopStartPose.getHeading();
-        if (onBlue) goalPose = new Pose(4, 140);
-        else goalPose = new Pose(140, 140);
+        if (onBlue) {
+            goalPose = new Pose(4, 140);
+            basePose = new Pose(105, 33.5);
+        } else {
+            goalPose = new Pose(140, 140);
+            basePose = new Pose(38.5, 33.5);
+        }
 
         Drawing.init();
 
@@ -140,23 +153,25 @@ public class ManualTeleOp extends NextFTCOpMode {
                 frontRightMotor,
                 backLeftMotor,
                 backRightMotor,
-                gp1.leftStickY().negate().deadZone(0.3),
-                () -> { // use triggers to strafe
-                    if (!use_triggers_for_sideways) return gp1.leftStickX().deadZone(0.3).get() * (onBlue ? -1 : 0);
-                    if (panelsGamepad1.asCombinedFTCGamepad(ActiveOpMode.gamepad1()).left_trigger > 0.3) {
-                        return (double) -panelsGamepad1.asCombinedFTCGamepad(ActiveOpMode.gamepad1()).left_trigger;
-                    } else if (panelsGamepad1.asCombinedFTCGamepad(ActiveOpMode.gamepad1()).right_trigger > 0.3) {
-                        return (double) panelsGamepad1.asCombinedFTCGamepad(ActiveOpMode.gamepad1()).right_trigger;
-                    }
-                    return 0.0;
-                },
+                gp1.leftStickY().negate().deadZone(0.3).map(p -> {
+                    if (!parking) return p;
+
+                    double error = basePose.getX() - PedroComponent.follower().getPose().getX();
+                    double power = error * parkP + Math.signum(error) * parkF;
+
+                    return power * (onBlue ? -1 : 1);
+                }),
+                gp1.leftStickX().deadZone(0.3).map(p -> {
+                    if (!parking) return p * (onBlue ? 1 : -1);
+
+                    double error = basePose.getY() - PedroComponent.follower().getPose().getY();
+                    double power = error * parkP + Math.signum(error) * parkF;
+
+                    return power * (onBlue ? 1 : -1);
+                }),
                 () -> { // auto aim when in shooting mode
                     double stickX = panelsGamepad1.asCombinedFTCGamepad(ActiveOpMode.gamepad1()).right_stick_x;
-                    //Pose target = goalPose.copy().minus(PedroComponent.follower().getPose());
-                    //double angle = Math.atan2(target.getY(), target.getX());
-                    //telemetryM.addData("auto aim angle", Math.toDegrees(angle));
-                    //if (!autoAim) {
-                    if (Math.abs(stickX) > 0.4) {
+                    if (Math.abs(stickX) > 0.4 && !autoAim && !parking) {
                         activeTurning = true;
                         targetHeading = PedroComponent.follower().getHeading();
                         turnTimer.reset();
@@ -171,10 +186,7 @@ public class ManualTeleOp extends NextFTCOpMode {
                     } else if (error < -180) {
                         error += 360;
                     }
-                    return -0.03 * error;
-                    //}
-                    //double error = angle - PedroComponent.follower().getHeading();
-                    //return 0.0 * Math.toDegrees(error);
+                    return -autoAimGain * error;
                 },
                 new FieldCentric(() -> Angle.fromRad(PedroComponent.follower().getHeading() + Math.PI * (onBlue ? 1 : 0)))
         );
@@ -213,26 +225,40 @@ public class ManualTeleOp extends NextFTCOpMode {
                 });
 
         // on press, override driver control and go to park,
-        // on off reschedule driver control
+        // on off, re-enable driver control
         gp1.x().toggleOnBecomesTrue()
                 .whenBecomesTrue(() -> {
-                    Pose basePose = new Pose(
-                            onBlue ? 105 : 38.5,
-                            33.5
-                    );
-                    PathChain toBase = PedroComponent.follower()
-                            .pathBuilder()
-                            .addPath(
-                                    new BezierLine(PedroComponent.follower().getPose(), basePose)
-                            )
-                            .setLinearHeadingInterpolation(PedroComponent.follower().getHeading(), 0)
-                            .build();
-                    Command moveCommand = new FollowPath(toBase);
-                    moveCommand.schedule();
+                    targetHeading = 0;
+                    parking = true;
                 })
                 .whenBecomesFalse(() -> {
-                    driverControlled.schedule();
+                    parking = false;
                 });
+
+        // use dpad to fine tune parking without going into driver mode again
+        gp1.dpadUp().whenTrue(() -> {
+            if (parking) {
+                basePose = basePose.plus(new Pose(parkAdjust * (onBlue ? -1 : 1), 0, 0));
+            }
+        });
+
+        gp1.dpadDown().whenTrue(() -> {
+            if (parking) {
+                basePose = basePose.plus(new Pose(-parkAdjust * (onBlue ? -1 : 1), 0, 0));
+            }
+        });
+
+        gp1.dpadLeft().whenTrue(() -> {
+            if (parking) {
+                basePose = basePose.plus(new Pose(0, parkAdjust * (onBlue ? -1 : 1), 0));
+            }
+        });
+
+        gp1.dpadRight().whenTrue(() -> {
+            if (parking) {
+                basePose = basePose.plus(new Pose(0, -parkAdjust * (onBlue ? -1 : 1), 0));
+            }
+        });
 
         gp1.a().toggleOnBecomesTrue()
                 .whenBecomesTrue(() -> {
@@ -248,6 +274,7 @@ public class ManualTeleOp extends NextFTCOpMode {
                     transfer_on = false;
                 });
 
+        // TODO: Collect data with new shooter to see if interplut is better than physics
         /*gp1.dpadUp().whenBecomesTrue(() -> {
             if (autoAim) Shooter.INSTANCE.setSpeed(Shooter.INSTANCE.targetSpeed + 25);
         });
@@ -264,21 +291,23 @@ public class ManualTeleOp extends NextFTCOpMode {
         double beforeUserEnd = Logger.getTimestamp();
 
         BindingManager.update();
-        double dist = PedroComponent.follower().getPose().distanceFrom(goalPose);
+        Pose robotPose = PedroComponent.follower().getPose();
+        double dist = robotPose.distanceFrom(goalPose);
 
         Pose robotPoseCamera = new Pose();
+        Pose kalmanFilterPose = new Pose();
         boolean cameraFoundTag = false;
 
         // TODO: Test shooting while moving
         if (autoAim) {
             // update shooter speed continuously
-            // - scheduling new speed command every frame is fine because
-            //   command manager just cancels old commands that are doing the same thing
+            // - scheduling new speed command every frame is fine because the
+            //   command manager just cancels old commands that are using the same subsystem
             Shooter.INSTANCE.setSpeedFromDistance(dist + DIST_ADJUST);
 
             targetHeading = goalPose.getAsVector().minus(PedroComponent.follower().getPose().getAsVector()).getTheta();
 
-            // prioritize powering shooter over others if both are on
+            // prioritize powering shooter over intake if both are on
             UtilFunctions.currentLimitMotor(intake, (intake_on ? -1 : 0));
             UtilFunctions.currentLimitMotor(transfer, (transfer_on ? -1 : 0));
 
@@ -296,13 +325,30 @@ public class ManualTeleOp extends NextFTCOpMode {
 
                 // found tag
                 if (tag != null) {
-                    robotPoseCamera = camera.getRobotPoseFromTag(tag);
+                    Pose cameraPose = camera.getRobotPoseFromTag(tag);
+
+                    cameraPosXFilter.update(cameraPose.getX(), 0);
+                    cameraPosYFilter.update(cameraPose.getY(), 0);
+                    cameraHeadingFilter.update(cameraPose.getHeading(), 0);
+
+                    robotPoseCamera = new Pose(cameraPosXFilter.getState(), cameraPosYFilter.getState(), cameraHeadingFilter.getState());
                     cameraFoundTag = true;
                 }
 
+                cameraKalmanXFilter.updateProcess(robotPose.getX());
+                cameraKalmanYFilter.updateProcess(robotPose.getY());
+                cameraKalmanHeadingFilter.updateProcess(robotPose.getHeading());
+
                 // relocalize if not moving so position isn't skewed
-                if (relocalize_on_shoot && PedroComponent.follower().getVelocity().getMagnitude() < 0.1 && Math.abs(targetHeading - PedroComponent.follower().getHeading()) < Math.toRadians(20)) {
-                    PedroComponent.follower().setPose(robotPoseCamera);
+                if (PedroComponent.follower().getVelocity().getMagnitude() < 0.1 && Math.abs(targetHeading - PedroComponent.follower().getHeading()) < Math.toRadians(20)) {
+                    cameraKalmanXFilter.updateMeasurement(robotPoseCamera.getX());
+                    cameraKalmanYFilter.updateMeasurement(robotPoseCamera.getY());
+                    cameraKalmanHeadingFilter.updateMeasurement(robotPoseCamera.getHeading());
+                }
+
+                kalmanFilterPose = new Pose(cameraKalmanXFilter.getEstimate(), cameraKalmanYFilter.getEstimate(), cameraKalmanHeadingFilter.getEstimate());
+                if (relocalize_on_shoot) {
+                    PedroComponent.follower().setPose(kalmanFilterPose);
                 }
             }
         } else {
@@ -316,6 +362,7 @@ public class ManualTeleOp extends NextFTCOpMode {
         telemetryM.addData("position", PedroComponent.follower().getPose());
         telemetryM.addData("camera found tag?", cameraFoundTag);
         telemetryM.addData("camera pose", robotPoseCamera);
+        telemetryM.addData("kalman filtered pose", kalmanFilterPose);
         telemetryM.addData("velocity", PedroComponent.follower().getVelocity());
 
         Logger.recordOutput("OpMode/TargetHeading", targetHeading);
@@ -331,6 +378,10 @@ public class ManualTeleOp extends NextFTCOpMode {
         Pose cameraPose = robotPoseCamera.getAsCoordinateSystem(FTCCoordinates.INSTANCE);
         Pose2d cameraPoseMeters = new Pose2d(cameraPose.getX() / 39.37, cameraPose.getY() / 39.37, new Rotation2d(cameraPose.getHeading()));
         Logger.recordOutput("OpMode/CameraPoseMeters", Pose2d.struct, cameraPoseMeters);
+
+        Pose kalmanPose = kalmanFilterPose.getAsCoordinateSystem(FTCCoordinates.INSTANCE);
+        Pose2d kalmanPoseMeters = new Pose2d(kalmanPose.getX() / 39.37, kalmanPose.getY() / 39.37, new Rotation2d(kalmanPose.getHeading()));
+        Logger.recordOutput("OpMode/KalmanPoseMeters", Pose2d.struct, kalmanPoseMeters);
 
         Drawing.drawDebug(PedroComponent.follower());
         telemetryM.update();

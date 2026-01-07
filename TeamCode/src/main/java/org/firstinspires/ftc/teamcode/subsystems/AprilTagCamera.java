@@ -44,8 +44,8 @@ public class AprilTagCamera {
                 .setOutputUnits(DistanceUnit.INCH, AngleUnit.DEGREES)
                 .setLensIntrinsics(680.441, 680.441, 294.849, 176.897)
                 .setCameraPose(
-                        new Position(DistanceUnit.INCH, 6, -6, 12, 0),
-                        new YawPitchRollAngles(AngleUnit.DEGREES, 0, -75, 0, 0))
+                        new Position(DistanceUnit.INCH, 5.75, -3, 10.5, 0),
+                        new YawPitchRollAngles(AngleUnit.DEGREES, 8, -80, 0, 0))
                 .build();
 
         visionPortal = new VisionPortal.Builder()
@@ -78,7 +78,7 @@ public class AprilTagCamera {
     public Pose getRobotPoseFromTag(AprilTagDetection detection) {
         Position position = detection.robotPose.getPosition().toUnit(DistanceUnit.INCH);
         double heading = detection.robotPose.getOrientation().getYaw(AngleUnit.RADIANS);
-        return new Pose(position.x, position.y, heading, FTCCoordinates.INSTANCE).getAsCoordinateSystem(PedroCoordinates.INSTANCE);
+        return new Pose(position.y + 72, -position.x + 72, heading);
     }
 
     public void displayTag(AprilTagDetection detection, JoinedTelemetry telemetry) {

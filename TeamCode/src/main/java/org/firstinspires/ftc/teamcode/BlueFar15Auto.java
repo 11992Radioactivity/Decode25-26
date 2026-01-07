@@ -247,6 +247,7 @@ public class BlueFar15Auto extends NextFTCOpMode {
 
     @Override
     public void onStop() {
+        Shooter.INSTANCE.off.schedule();
         DataStorage.INSTANCE.onBlue = true;
         DataStorage.INSTANCE.teleopStartPose = PedroComponent.follower().getPose();
     }
