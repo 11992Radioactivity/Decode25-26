@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.subsystems;
+package org.firstinspires.ftc.teamcode.mathnstuff;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
@@ -9,8 +9,8 @@ public class KalmanFilter {
 
     // higher process noise = lose trust in relative sensor quicker
     // higher measure noise = more smoothing of absolute sensor
-    private final double process_noise;
-    private final double measure_noise;
+    private double process_noise;
+    private double measure_noise;
 
     public KalmanFilter(double estimate, double variance, double process_noise, double measure_noise, boolean angle_var) {
         this.estimate = estimate;
@@ -35,8 +35,8 @@ public class KalmanFilter {
 
     // low variance = set to process estimate
     // high variance = set to measurement
-    public void updateMeasurement(double measurement) {
-        double k = variance / (variance + measure_noise);
+    public void updateMeasurement(double measurement, double measure_noise_scale) {
+        double k = variance / (variance + measure_noise * measure_noise_scale);
         if (!angle) {
             estimate += k * (measurement - estimate);
         } else {
@@ -44,6 +44,10 @@ public class KalmanFilter {
             estimate += AngleUnit.normalizeRadians(estimate + k * error);
         }
         variance *= (1 - k);
+    }
+
+    public void updateMeasurement(double measurement) {
+        updateMeasurement(measurement, 1);
     }
 
     public double getEstimate() {

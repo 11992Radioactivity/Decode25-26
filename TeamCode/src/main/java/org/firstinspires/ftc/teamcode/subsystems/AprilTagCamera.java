@@ -12,10 +12,12 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
+import org.firstinspires.ftc.vision.apriltag.AprilTagPoseFtc;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.ArrayList;
@@ -79,6 +81,16 @@ public class AprilTagCamera {
         Position position = detection.robotPose.getPosition().toUnit(DistanceUnit.INCH);
         double heading = detection.robotPose.getOrientation().getYaw(AngleUnit.RADIANS);
         return new Pose(position.y + 72, -position.x + 72, heading);
+    }
+
+    public double getAngleFromTag(AprilTagDetection detection) {
+        AprilTagPoseFtc currentPose = detection.ftcPose;
+        return currentPose.bearing;
+    }
+
+    public double getDistFromTag(AprilTagDetection detection) {
+        AprilTagPoseFtc currentPose = detection.ftcPose;
+        return currentPose.range;
     }
 
     public void displayTag(AprilTagDetection detection, JoinedTelemetry telemetry) {

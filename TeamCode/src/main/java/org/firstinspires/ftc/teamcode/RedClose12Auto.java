@@ -12,7 +12,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.pedroPathing.Drawing;
-import org.firstinspires.ftc.teamcode.subsystems.DataStorage;
+import org.firstinspires.ftc.teamcode.mathnstuff.DataStorage;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 
 import dev.nextftc.core.commands.Command;
@@ -68,7 +68,7 @@ public class RedClose12Auto extends NextFTCOpMode {
             Grab1Init = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(shootPose, new Pose(50.000, 82.000).mirror())
+                            new BezierLine(shootPose, new Pose(50.000, 84.000).mirror())
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(135 - 90), Math.toRadians(0))
                     .build();
@@ -76,7 +76,7 @@ public class RedClose12Auto extends NextFTCOpMode {
             Grab1Grab = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(50.000, 82.000).mirror(), new Pose(14.000, 82.000).mirror())
+                            new BezierLine(new Pose(50.000, 84.000).mirror(), new Pose(18.000, 84.000).mirror())
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                     .build();
@@ -100,7 +100,7 @@ public class RedClose12Auto extends NextFTCOpMode {
             Grab2Grab = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(50.000, 60.000).mirror(), new Pose(4.000, 60.000).mirror())
+                            new BezierLine(new Pose(50.000, 60.000).mirror(), new Pose(10.000, 60.000).mirror())
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                     .build();
@@ -128,7 +128,7 @@ public class RedClose12Auto extends NextFTCOpMode {
             Grab3Grab = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(50.000, 37.000).mirror(), new Pose(4.000, 37.000).mirror())
+                            new BezierLine(new Pose(50.000, 37.000).mirror(), new Pose(10.000, 37.000).mirror())
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                     .build();
@@ -188,7 +188,7 @@ public class RedClose12Auto extends NextFTCOpMode {
     public void onStartButtonPressed() {
         Drawing.init();
 
-        PedroComponent.follower().setStartingPose(new Pose(20.300, 122.600, Math.toRadians(140)).mirror());
+        PedroComponent.follower().setStartingPose(new Pose(123.700, 122.600, Math.toRadians(40)));
 
         Paths paths = new Paths();
 
@@ -234,6 +234,6 @@ public class RedClose12Auto extends NextFTCOpMode {
     public void onStop() {
         Shooter.INSTANCE.off.schedule();
         DataStorage.INSTANCE.onBlue = false;
-        DataStorage.INSTANCE.teleopStartPose = PedroComponent.follower().getPose();
+        DataStorage.INSTANCE.teleopStartPose = PedroComponent.follower().getPose().minus(new Pose(0, 0, Math.toRadians(7.5)));
     }
 }

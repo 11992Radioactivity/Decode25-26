@@ -2,15 +2,14 @@ package org.firstinspires.ftc.teamcode.subsystems;
 
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.Vector;
-import com.qualcomm.robotcore.hardware.VoltageSensor;
+
+import org.firstinspires.ftc.teamcode.mathnstuff.InterpolatedLookupTable;
 
 import java.util.function.DoubleSupplier;
 
 import dev.nextftc.control.ControlSystem;
 import dev.nextftc.core.commands.Command;
-import dev.nextftc.core.commands.groups.SequentialGroup;
 import dev.nextftc.core.subsystems.Subsystem;
-import dev.nextftc.ftc.ActiveOpMode;
 import dev.nextftc.hardware.controllable.MotorGroup;
 import dev.nextftc.hardware.controllable.RunToVelocity;
 import dev.nextftc.hardware.impl.MotorEx;
@@ -175,7 +174,7 @@ public class Shooter implements Subsystem {
 
     @Override
     public void periodic() {
-        if (Math.abs(control.getGoal().getVelocity() - motors.getVelocity()) < 0) {
+        if (Math.abs(control.getGoal().getVelocity()) < 100) {
             motors.setPower(0);
         } else {
             motors.setPower(control.calculate(motors.getState()));

@@ -12,7 +12,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 import org.firstinspires.ftc.teamcode.pedroPathing.*;
-import org.firstinspires.ftc.teamcode.subsystems.DataStorage;
+import org.firstinspires.ftc.teamcode.mathnstuff.DataStorage;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 import org.psilynx.psikit.core.Logger;
 import org.psilynx.psikit.core.rlog.RLOGServer;
