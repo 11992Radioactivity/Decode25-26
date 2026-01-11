@@ -306,7 +306,11 @@ public class ManualTeleOp extends NextFTCOpMode {
             Shooter.INSTANCE.closeGate.schedule();
         }
 
-        poseEstimator.updateOdometry(PedroComponent.follower().poseTracker.getRawPose());
+        // the kalman filter works by adding the previous estimate with an odometry
+        // change, but since the pedro pose is both set to the previous estimate and
+        // incremented automatically with odometry, we can just pass it back in since
+        // the function just sets the estimate to the thing passed in
+        poseEstimator.updateOdometry(PedroComponent.follower().getPose());
 
         camera.update();
         List<AprilTagDetection> tags = camera.getDetections();

@@ -28,6 +28,9 @@ public class KalmanFilter {
         this(process_noise, measure_noise, false);
     }
 
+    // this is a weird implementation but it works with my code so ignore it
+    // normally it works by adding the update to the current state but since pedro
+    // does stuff automatically it's easier to do this
     public void updateProcess(double update) {
         estimate = update;
         variance += process_noise;
