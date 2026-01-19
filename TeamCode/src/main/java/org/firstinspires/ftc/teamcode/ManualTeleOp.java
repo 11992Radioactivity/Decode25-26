@@ -78,11 +78,13 @@ public class ManualTeleOp extends NextFTCOpMode {
     private boolean intake_on = false;
     private boolean transfer_on = false;
     private boolean parking = false;
+    private Pose robotPoseCamera = new Pose();
     private boolean heading_cam_adjusted = false;
     private Pose last_heading_pose = new Pose();
     private double last_heading_time = 0;
     private double last_heading = 0;
     private double last_timestamp;
+    private double heading_offset = 0;
 
     // constant variables
     private final boolean log_server = true; //TODO: MUST TURN OFF DURING COMPETITION
@@ -276,14 +278,12 @@ public class ManualTeleOp extends NextFTCOpMode {
         // the bumper pressed to fix pointing at goal
         gp1.leftBumper().whenTrue(() -> {
             if (!autoAim) return;
-            double offset = PedroComponent.follower().getPoseTracker().getHeadingOffset();
-            PedroComponent.follower().getPoseTracker().setHeadingOffset(offset - Math.toRadians(1));
+            heading_offset -= Math.toRadians(1);
         });
 
         gp1.rightBumper().whenTrue(() -> {
             if (!autoAim) return;
-            double offset = PedroComponent.follower().getPoseTracker().getHeadingOffset();
-            PedroComponent.follower().getPoseTracker().setHeadingOffset(offset + Math.toRadians(1));
+            heading_offset += Math.toRadians(1);
         });
 
         // TODO: Collect data with new shooter to see if interplut is better than physics
@@ -317,7 +317,6 @@ public class ManualTeleOp extends NextFTCOpMode {
         Pose robotPose = PedroComponent.follower().getPose();
         double dist = robotPose.distanceFrom(goalPose);
 
-        Pose robotPoseCamera = new Pose();
         boolean cameraFoundTag = false;
 
         // TODO: Test shooting while moving
@@ -384,9 +383,9 @@ public class ManualTeleOp extends NextFTCOpMode {
             }
 
             if (relocalize_with_camera) {
-                //camera heading is wayyyyy too bad, so just use raw imu
+                //camera heading is wayyyyy too bad, so just use raw imu manually adjusted
                 PedroComponent.follower().getPoseTracker().setCurrentPoseWithOffset(
-                        poseEstimator.getCurrentEstimate().setHeading(PedroComponent.follower().getPoseTracker().getRawPose().getHeading())
+                        poseEstimator.getCurrentEstimate().setHeading(PedroComponent.follower().getPoseTracker().getRawPose().getHeading() + heading_offset)
                 );
             }
         }
@@ -399,7 +398,7 @@ public class ManualTeleOp extends NextFTCOpMode {
         telemetryM.addData("position", PedroComponent.follower().getPose());
         telemetryM.addData("camera found tag?", cameraFoundTag);
         telemetryM.addData("camera pose", robotPoseCamera);
-        telemetryM.addData("kalman filtered pose", poseEstimator.getCurrentEstimate());
+        telemetryM.addData("odom pose", PedroComponent.follower().getPoseTracker().getRawPose());
         telemetryM.addData("velocity", PedroComponent.follower().getVelocity());
 
         Logger.recordOutput("OpMode/TargetHeading", targetHeading);
@@ -416,9 +415,9 @@ public class ManualTeleOp extends NextFTCOpMode {
         Pose2d cameraPoseMeters = new Pose2d(cameraPose.getX() / 39.37, cameraPose.getY() / 39.37, new Rotation2d(cameraPose.getHeading()));
         Logger.recordOutput("OpMode/CameraPoseMeters", Pose2d.struct, cameraPoseMeters);
 
-        Pose kalmanPose = poseEstimator.getCurrentEstimate().getAsCoordinateSystem(FTCCoordinates.INSTANCE);
-        Pose2d kalmanPoseMeters = new Pose2d(kalmanPose.getX() / 39.37, kalmanPose.getY() / 39.37, new Rotation2d(kalmanPose.getHeading()));
-        Logger.recordOutput("OpMode/KalmanPoseMeters", Pose2d.struct, kalmanPoseMeters);
+        Pose odomPose = PedroComponent.follower().getPoseTracker().getRawPose().getAsCoordinateSystem(FTCCoordinates.INSTANCE);
+        Pose2d odomPoseMeters = new Pose2d(odomPose.getX() / 39.37, odomPose.getY() / 39.37, new Rotation2d(odomPose.getHeading()));
+        Logger.recordOutput("OpMode/OdomPoseMeters", Pose2d.struct, odomPoseMeters);
 
         Drawing.drawDebug(PedroComponent.follower());
         telemetryM.update();
