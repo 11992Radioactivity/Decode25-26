@@ -45,6 +45,7 @@ public class RedClose12Auto extends NextFTCOpMode {
         public PathChain Shoot1;
         public PathChain Grab1Init;
         public PathChain Grab1Grab;
+        public PathChain GatePush;
         public PathChain Shoot2;
         public PathChain Grab2Init;
         public PathChain Grab2Grab;
@@ -62,7 +63,7 @@ public class RedClose12Auto extends NextFTCOpMode {
                     .addPath(
                             new BezierLine(new Pose(20.300, 122.600).mirror(), shootPose)
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(140 - 90), Math.toRadians(135 - 90))
+                    .setLinearHeadingInterpolation(Math.toRadians(140 - 90), Math.toRadians(140 - 90))
                     .build();
 
             Grab1Init = follower
@@ -81,12 +82,24 @@ public class RedClose12Auto extends NextFTCOpMode {
                     .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                     .build();
 
+            GatePush = follower
+                    .pathBuilder()
+                    .addPath(
+                            new BezierCurve(
+                                    new Pose(18.000, 84.000).mirror(),
+                                    new Pose(35.229, 71.119).mirror(),
+                                    new Pose(14.000, 72.000).mirror()
+                            )
+                    )
+                    .setConstantHeadingInterpolation(Math.toRadians(0))
+                    .build();
+
             Shoot2 = follower
                     .pathBuilder()
                     .addPath(
                             new BezierLine(new Pose(18.000, 84.500).mirror(), shootPose)
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(135 - 90))
+                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(140 - 90))
                     .build();
 
             Grab2Init = follower
@@ -114,7 +127,7 @@ public class RedClose12Auto extends NextFTCOpMode {
                                     shootPose
                             )
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(135 - 90))
+                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(140 - 90))
                     .build();
 
             Grab3Init = follower
@@ -169,20 +182,10 @@ public class RedClose12Auto extends NextFTCOpMode {
             new Delay(0.2)
     );
 
-    private Command shoot = new SequentialGroup(
-            Shooter.INSTANCE.onFromDistSupplier(() -> PedroComponent.follower().getPose().distanceFrom(goalPose) + 12),
-            Shooter.INSTANCE.openGate,
-            new Delay(0.7),
-            intakeOn,
-            transferOn,
-            new Delay(1.5),
-            intakeOff,
-            transferOff,
-            new ParallelGroup(
-                    Shooter.INSTANCE.setSpeedCommand(2600),
-                    new ParallelGroup(Shooter.INSTANCE.closeGate, intakeOff)
-            )
-    );
+    @Override
+    public void onInit() {
+        Shooter.INSTANCE.off.schedule();
+    }
 
     @Override
     public void onStartButtonPressed() {
@@ -190,15 +193,27 @@ public class RedClose12Auto extends NextFTCOpMode {
 
         PedroComponent.follower().setStartingPose(new Pose(123.700, 122.600, Math.toRadians(40)));
 
+        Command shoot = new SequentialGroup(
+                Shooter.INSTANCE.openGate,
+                new Delay(0.7),
+                intakeOn,
+                transferOn,
+                new Delay(1.5),
+                intakeOff,
+                transferOff,
+                new ParallelGroup(Shooter.INSTANCE.closeGate, intakeOff)
+        );
+
         Paths paths = new Paths();
 
         new SequentialGroup(
-                Shooter.INSTANCE.setSpeedCommand(2600),
+                Shooter.INSTANCE.setSpeedCommand(2300),
                 new FollowPath(paths.Shoot1),
                 shoot, //shoot
                 new FollowPath(paths.Grab1Init),
                 intakeOn,
                 new FollowPath(paths.Grab1Grab, true, 0.7),
+                new FollowPath(paths.GatePush, true, 0.5),
                 new FollowPath(paths.Shoot2),
                 intakeOff,
                 shoot, //shoot

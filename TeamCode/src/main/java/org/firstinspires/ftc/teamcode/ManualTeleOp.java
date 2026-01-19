@@ -66,7 +66,6 @@ public class ManualTeleOp extends NextFTCOpMode {
     private JoinedTelemetry telemetryM;
     private GamepadManager panelsGamepad1;
     private GamepadManager panelsGamepad2;
-    private DriverControlledCommand driverControlled;
     private AprilTagCamera camera;
     private PoseEstimator poseEstimator;
 
@@ -76,26 +75,33 @@ public class ManualTeleOp extends NextFTCOpMode {
     private double targetHeading = 0;
     private boolean activeTurning = false;
     private ElapsedTime turnTimer = new ElapsedTime();
-    private double DIST_ADJUST = 6;
     private boolean intake_on = false;
     private boolean transfer_on = false;
     private boolean parking = false;
+    private boolean heading_cam_adjusted = false;
+    private Pose last_heading_pose = new Pose();
+    private double last_heading_time = 0;
+    private double last_heading = 0;
+    private double last_timestamp;
 
     // constant variables
     private final boolean log_server = true; //TODO: MUST TURN OFF DURING COMPETITION
     private final boolean relocalize_with_camera = true;
     private final boolean camera_point_to_tag = true;
+    private final double adjust_heading_dist = 1; // inches moved away before rejecting camera heading to target
     private Pose goalPose;
     private Pose basePose;
+    private final double DIST_ADJUST = 6;
     private final double aimP = 0.01; // 1 / (point to slow down at after reaching)
     private final double aimF = 0.02;
     private final double parkAdjust = 0.1;
     private final double parkP = 0.03;
     private final double parkF = 0.02;
+    private final double camera_latency = 0.11;
 
     @Override
     public void onInit() {
-        Shooter.INSTANCE.off.schedule();
+        Shooter.INSTANCE.setSpeed(0);
 
         SimpleDateFormat fmt = new SimpleDateFormat("MM_dd_yyyy_HH_mm", Locale.US);
         String filename = fmt.format(new Date());
@@ -118,6 +124,8 @@ public class ManualTeleOp extends NextFTCOpMode {
 
     @Override
     public void onStartButtonPressed() {
+        last_timestamp = System.currentTimeMillis() / 1000.0;
+
         telemetryM = new JoinedTelemetry(telemetry, PanelsTelemetry.INSTANCE.getFtcTelemetry());
         panelsGamepad1 = PanelsGamepad.INSTANCE.getFirstManager();
         panelsGamepad2 = PanelsGamepad.INSTANCE.getSecondManager();
@@ -140,7 +148,8 @@ public class ManualTeleOp extends NextFTCOpMode {
         GamepadEx gp1 = new GamepadEx(() -> panelsGamepad1.asCombinedFTCGamepad(ActiveOpMode.gamepad1()));
         GamepadEx gp2 = new GamepadEx(() -> panelsGamepad2.asCombinedFTCGamepad(ActiveOpMode.gamepad2()));
 
-        driverControlled = new MecanumDriverControlled(
+        // auto aim when in shooting mode
+        DriverControlledCommand driverControlled = new MecanumDriverControlled(
                 frontLeftMotor,
                 frontRightMotor,
                 backLeftMotor,
@@ -151,7 +160,7 @@ public class ManualTeleOp extends NextFTCOpMode {
                     double error = basePose.getX() - PedroComponent.follower().getPose().getX();
                     double power = error * parkP + Math.signum(error) * parkF;
 
-                    return power;
+                    return power * (onBlue ? -1 : 1);
                 }),
                 gp1.leftStickX().deadZone(0.3).map(p -> {
                     if (!parking) return p;
@@ -229,33 +238,30 @@ public class ManualTeleOp extends NextFTCOpMode {
 
         // use dpad to fine tune parking without going into driver mode again
         gp1.dpadUp().whenTrue(() -> {
-            if (parking) {
-                basePose = basePose.plus(new Pose(parkAdjust * (onBlue ? -1 : 1), 0, 0));
-            }
+            if (!parking) return;
+            basePose = basePose.plus(new Pose(parkAdjust * (onBlue ? -1 : 1), 0, 0));
         });
 
         gp1.dpadDown().whenTrue(() -> {
-            if (parking) {
-                basePose = basePose.plus(new Pose(-parkAdjust * (onBlue ? -1 : 1), 0, 0));
-            }
+            if (!parking) return;
+            basePose = basePose.plus(new Pose(-parkAdjust * (onBlue ? -1 : 1), 0, 0));
         });
 
         gp1.dpadLeft().whenTrue(() -> {
-            if (parking) {
-                basePose = basePose.plus(new Pose(0, parkAdjust * (onBlue ? -1 : 1), 0));
-            }
+            if (!parking) return;
+            basePose = basePose.plus(new Pose(0, parkAdjust * (onBlue ? -1 : 1), 0));
         });
 
         gp1.dpadRight().whenTrue(() -> {
-            if (parking) {
-                basePose = basePose.plus(new Pose(0, -parkAdjust * (onBlue ? -1 : 1), 0));
-            }
+            if (!parking) return;
+            basePose = basePose.plus(new Pose(0, -parkAdjust * (onBlue ? -1 : 1), 0));
         });
 
         gp1.a().toggleOnBecomesTrue()
                 .whenBecomesTrue(() -> {
                     autoAim = true;
                     double dist = PedroComponent.follower().getPose().distanceFrom(goalPose);
+                    //Shooter.INSTANCE.on.schedule();
                     Shooter.INSTANCE.setSpeedFromDistance(dist + DIST_ADJUST);
                 })
                 .whenBecomesFalse(() -> {
@@ -265,6 +271,20 @@ public class ManualTeleOp extends NextFTCOpMode {
                     Shooter.INSTANCE.closeGate.schedule();
                     transfer_on = false;
                 });
+
+        // make robot think it's facing farther left or right opposite of
+        // the bumper pressed to fix pointing at goal
+        gp1.leftBumper().whenTrue(() -> {
+            if (!autoAim) return;
+            double offset = PedroComponent.follower().getPoseTracker().getHeadingOffset();
+            PedroComponent.follower().getPoseTracker().setHeadingOffset(offset - Math.toRadians(1));
+        });
+
+        gp1.rightBumper().whenTrue(() -> {
+            if (!autoAim) return;
+            double offset = PedroComponent.follower().getPoseTracker().getHeadingOffset();
+            PedroComponent.follower().getPoseTracker().setHeadingOffset(offset + Math.toRadians(1));
+        });
 
         // TODO: Collect data with new shooter to see if interplut is better than physics
         /*gp1.dpadUp().whenBecomesTrue(() -> {
@@ -282,6 +302,16 @@ public class ManualTeleOp extends NextFTCOpMode {
         Logger.periodicBeforeUser();
         double beforeUserEnd = Logger.getTimestamp();
 
+        double cur_time = (System.currentTimeMillis() / 1000.0);
+        double dt = cur_time - last_timestamp;
+        last_timestamp = cur_time;
+
+        double angleVelRad = (PedroComponent.follower().getHeading() - last_heading) / dt;
+        last_heading = PedroComponent.follower().getHeading();
+
+        double voltage = hardwareMap.voltageSensor.iterator().next().getVoltage();
+        Shooter.INSTANCE.setVoltage(voltage);
+
         BindingManager.update();
 
         Pose robotPose = PedroComponent.follower().getPose();
@@ -296,8 +326,16 @@ public class ManualTeleOp extends NextFTCOpMode {
             // - scheduling new speed command every frame is fine because the
             //   command manager just cancels old commands that are using the same subsystem
             Shooter.INSTANCE.setSpeedFromDistance(dist + DIST_ADJUST);
+            //Shooter.INSTANCE.setSpeed(Shooter.INSTANCE.targetSpeed);
 
-            targetHeading = goalPose.getAsVector().minus(PedroComponent.follower().getPose().getAsVector()).getTheta();
+            if (heading_cam_adjusted && (PedroComponent.follower().getPose().distanceFrom(last_heading_pose) > adjust_heading_dist || (cur_time - last_heading_time > 1))) {
+                heading_cam_adjusted = false;
+            }
+
+            // no camera turning yet
+            if (!heading_cam_adjusted) {
+                targetHeading = goalPose.getAsVector().minus(PedroComponent.follower().getPose().getAsVector()).getTheta();
+            }
 
             // prioritize powering shooter over intake if both are on
             UtilFunctions.currentLimitMotor(intake, (intake_on ? -1 : 0));
@@ -327,26 +365,34 @@ public class ManualTeleOp extends NextFTCOpMode {
 
             if (cameraFoundTag) {
                 // relocalize if not moving so position isn't skewed
-                if (PedroComponent.follower().getVelocity().getMagnitude() < 0.1 && Math.abs(targetHeading - PedroComponent.follower().getHeading()) < Math.toRadians(20)) {
+                if (PedroComponent.follower().getVelocity().getMagnitude() < 0.1 && Math.abs(angleVelRad) < Math.toRadians(5)) {
                     robotPoseCamera = camera.getRobotPoseFromTag(tag);
                     double distFromTag = camera.getDistFromTag(tag);
                     poseEstimator.updateVision(robotPoseCamera, distFromTag);
                 }
 
                 // turn towards tag once camera can see it
-                if (camera_point_to_tag) {
+                if (camera_point_to_tag && autoAim && Math.abs(angleVelRad) < Math.toRadians(5) && !heading_cam_adjusted) {
                     double heading_away_from_tag = camera.getAngleFromTag(tag);
                     telemetryM.addData("heading to tag", heading_away_from_tag);
                     targetHeading += Math.toRadians(heading_away_from_tag - 3);
+
+                    heading_cam_adjusted = true;
+                    last_heading_pose = PedroComponent.follower().getPose();
+                    last_heading_time = cur_time;
                 }
             }
 
             if (relocalize_with_camera) {
-                PedroComponent.follower().setPose(poseEstimator.getCurrentEstimate());
+                //camera heading is wayyyyy too bad, so just use raw imu
+                PedroComponent.follower().getPoseTracker().setCurrentPoseWithOffset(
+                        poseEstimator.getCurrentEstimate().setHeading(PedroComponent.follower().getPoseTracker().getRawPose().getHeading())
+                );
             }
         }
 
-        telemetryM.addData("target heading", targetHeading);
+        telemetryM.addData("anglular vel", Math.toDegrees(angleVelRad));
+        telemetryM.addData("target heading", Math.toDegrees(targetHeading));
         telemetryM.addData("shooter vel", Shooter.INSTANCE.getCurrentSpeed());
         telemetryM.addData("shooter target", Shooter.INSTANCE.getTargetSpeed());
         telemetryM.addData("distance from goal", dist);

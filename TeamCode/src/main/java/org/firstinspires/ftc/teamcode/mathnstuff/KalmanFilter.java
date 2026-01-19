@@ -11,6 +11,7 @@ public class KalmanFilter {
     // higher measure noise = more smoothing of absolute sensor
     private double process_noise;
     private double measure_noise;
+    private double rejection_amount = Double.POSITIVE_INFINITY;
 
     public KalmanFilter(double estimate, double variance, double process_noise, double measure_noise, boolean angle_var) {
         this.estimate = estimate;
@@ -28,6 +29,10 @@ public class KalmanFilter {
         this(process_noise, measure_noise, false);
     }
 
+    public void setRejectionAmount(double amt) {
+        rejection_amount = amt;
+    }
+
     // this is a weird implementation but it works with my code so ignore it
     // normally it works by adding the update to the current state but since pedro
     // does stuff automatically it's easier to do this
@@ -39,6 +44,8 @@ public class KalmanFilter {
     // low variance = set to process estimate
     // high variance = set to measurement
     public void updateMeasurement(double measurement, double measure_noise_scale) {
+        if (Math.abs(measurement - estimate) > rejection_amount) return;
+
         double k = variance / (variance + measure_noise * measure_noise_scale);
         if (!angle) {
             estimate += k * (measurement - estimate);

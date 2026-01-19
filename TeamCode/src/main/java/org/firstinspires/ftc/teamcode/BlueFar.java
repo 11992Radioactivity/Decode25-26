@@ -44,48 +44,64 @@ public class BlueFar extends NextFTCOpMode {
         public PathChain Grab1Grab;
         public PathChain Grab1Init2;
         public PathChain Grab1Grab2;
+        public PathChain Grab1Init3;
+        public PathChain Grab1Grab3;
         public PathChain Shoot2;
         public PathChain GoPark;
         public Follower follower = PedroComponent.follower();
+
+        public Pose shootPose = new Pose(59.000, 16.000);
 
         public Paths() {
             Shoot1 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(56.000, 8.000), new Pose(59.000, 16.000))
+                            new BezierLine(new Pose(56.000, 8.000), shootPose)
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(115))
+                    .setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(112.5))
                     .build();
             Grab1Init = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(59.000, 16.000), new Pose(20.000, 9.000))
+                            new BezierLine(shootPose, new Pose(20.000, 14.000))
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(112.5), Math.toRadians(180))
                     .build();
 
             Grab1Grab = follower
                     .pathBuilder()
-                    .addPath(new BezierLine(new Pose(20.000, 9.000), new Pose(14.000, 9.000)))
+                    .addPath(new BezierLine(new Pose(20.000, 14.000), new Pose(14.000, 14.000)))
                     .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(180))
                     .build();
 
             Grab1Init2 = follower
                     .pathBuilder()
-                    .addPath(new BezierLine(new Pose(10.000, 9.000), new Pose(20.000, 9.000)))
+                    .addPath(new BezierLine(new Pose(10.000, 14.000), new Pose(20.000, 7.000)))
                     .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(180))
                     .build();
 
             Grab1Grab2 = follower
                     .pathBuilder()
-                    .addPath(new BezierLine(new Pose(20.000, 9.000), new Pose(10.000, 9.000)))
+                    .addPath(new BezierLine(new Pose(20.000, 7.000), new Pose(12.000, 7.000)))
+                    .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(200))
+                    .build();
+
+            Grab1Init3 = follower
+                    .pathBuilder()
+                    .addPath(new BezierLine(new Pose(12.000, 7.000), new Pose(20.000, 7.000)))
                     .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(180))
+                    .build();
+
+            Grab1Grab3 = follower
+                    .pathBuilder()
+                    .addPath(new BezierLine(new Pose(20.000, 7.000), new Pose(12.000, 7.000)))
+                    .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(160))
                     .build();
 
             Shoot2 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(10.000, 9.000), new Pose(59.000, 16.000))
+                            new BezierLine(new Pose(10.000, 9.000), shootPose)
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(112.5))
                     .build();
@@ -93,7 +109,7 @@ public class BlueFar extends NextFTCOpMode {
             GoPark = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(59.000, 16.000), new Pose(16.000, 16.000))
+                            new BezierLine(shootPose, new Pose(16.000, 16.000))
                     )
                     .setTangentHeadingInterpolation()
                     .build();
@@ -108,7 +124,7 @@ public class BlueFar extends NextFTCOpMode {
     private MotorEx transfer = new MotorEx("Transfer");
     private Command intakeOn = new SetPower(intake, -1);
     private Command intakeOff = new SetPower(intake, 0);
-    private Command transferOnHalf = new SetPower(transfer, -0.5);
+    private Command transferOnHalf = new SetPower(transfer, -0.75);
     private Command transferOn = new SetPower(transfer, -1);
     private Command transferOff = new SetPower(transfer, 0);
 
@@ -121,28 +137,33 @@ public class BlueFar extends NextFTCOpMode {
             new Delay(1.0)
     );
 
-    private Command shoot = new SequentialGroup(
-            Shooter.INSTANCE.onFromDistSupplier(() -> PedroComponent.follower().getPose().distanceFrom(goalPose) - 6),
-            Shooter.INSTANCE.openGate,
-            new Delay(1.0),
-            shootIndividual,
-            shootIndividual,
-            intakeOn,
-            transferOn,
-            new Delay(0.5),
-            intakeOff,
-            transferOff,
-            new ParallelGroup(
-                    Shooter.INSTANCE.setSpeedCommand(3400),
-                    new ParallelGroup(Shooter.INSTANCE.closeGate, intakeOff)
-            )
-    );
+    @Override
+    public void onInit() {
+        Shooter.INSTANCE.off.schedule();
+    }
 
     @Override
     public void onStartButtonPressed() {
         Drawing.init();
 
         PedroComponent.follower().setStartingPose(new Pose(56, 8, Math.toRadians(90)));
+
+        Command shoot = new SequentialGroup(
+                Shooter.INSTANCE.onFromDistSupplier(() -> PedroComponent.follower().getPose().distanceFrom(goalPose) + 8, 150, 54),
+                Shooter.INSTANCE.openGate,
+                new Delay(1.0),
+                shootIndividual,
+                shootIndividual,
+                intakeOn,
+                transferOn,
+                new Delay(0.5),
+                intakeOff,
+                transferOff,
+                new ParallelGroup(
+                        Shooter.INSTANCE.setSpeedCommand(3400),
+                        new ParallelGroup(Shooter.INSTANCE.closeGate, intakeOff)
+                )
+        );
 
         Paths paths = new Paths();
 
@@ -155,6 +176,8 @@ public class BlueFar extends NextFTCOpMode {
                 new FollowPath(paths.Grab1Grab, true, 0.7),
                 new FollowPath(paths.Grab1Init2, true, 0.7),
                 new FollowPath(paths.Grab1Grab2, true, 0.7),
+                new FollowPath(paths.Grab1Init3, true, 0.7),
+                new FollowPath(paths.Grab1Grab3, true, 0.7),
                 new FollowPath(paths.Shoot2, true, 0.7),
                 intakeOff,
                 shoot,

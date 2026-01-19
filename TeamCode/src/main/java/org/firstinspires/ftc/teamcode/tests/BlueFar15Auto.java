@@ -185,7 +185,7 @@ public class BlueFar15Auto extends NextFTCOpMode {
     private Command intakeOff = new SetPower(intake, 0);
 
     private Command shoot = new SequentialGroup(
-            Shooter.INSTANCE.onFromDistSupplier(() -> PedroComponent.follower().getPose().distanceFrom(goalPose)),
+            Shooter.INSTANCE.onFromDistSupplier(() -> PedroComponent.follower().getPose().distanceFrom(goalPose) + 8, 150, 48),
             new Delay(1),
             new ParallelGroup(Shooter.INSTANCE.openGate, intakeOn),
             new Delay(2),

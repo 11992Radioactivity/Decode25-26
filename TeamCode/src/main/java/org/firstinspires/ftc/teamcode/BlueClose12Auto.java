@@ -44,6 +44,7 @@ public class BlueClose12Auto extends NextFTCOpMode {
         public PathChain Shoot1;
         public PathChain Grab1Init;
         public PathChain Grab1Grab;
+        public PathChain GatePush;
         public PathChain Shoot2;
         public PathChain Grab2Init;
         public PathChain Grab2Grab;
@@ -78,6 +79,18 @@ public class BlueClose12Auto extends NextFTCOpMode {
                             new BezierLine(new Pose(50.000, 82.000), new Pose(18.000, 82.000))
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(180))
+                    .build();
+
+            GatePush = follower
+                    .pathBuilder()
+                    .addPath(
+                            new BezierCurve(
+                                    new Pose(18.000, 82.000),
+                                    new Pose(35.229, 71.119),
+                                    new Pose(14.000, 70.000)
+                            )
+                    )
+                    .setConstantHeadingInterpolation(Math.toRadians(180))
                     .build();
 
             Shoot2 = follower
@@ -161,27 +174,10 @@ public class BlueClose12Auto extends NextFTCOpMode {
     private Command transferOn = new SetPower(transfer, -1);
     private Command transferOff = new SetPower(transfer, 0);
 
-    private Command shootIndividual = new SequentialGroup(
-            intakeOn,
-            new Delay(0.3),
-            intakeOff,
-            new Delay(0.2)
-    );
-
-    private Command shoot = new SequentialGroup(
-            Shooter.INSTANCE.onFromDistSupplier(() -> PedroComponent.follower().getPose().distanceFrom(goalPose) + 12),
-            Shooter.INSTANCE.openGate,
-            new Delay(0.7),
-            intakeOn,
-            transferOn,
-            new Delay(1.5),
-            intakeOff,
-            transferOff,
-            new ParallelGroup(
-                    Shooter.INSTANCE.setSpeedCommand(2600),
-                    new ParallelGroup(Shooter.INSTANCE.closeGate, intakeOff)
-            )
-    );
+    @Override
+    public void onInit() {
+        Shooter.INSTANCE.setSpeed(0);;
+    }
 
     @Override
     public void onStartButtonPressed() {
@@ -189,15 +185,27 @@ public class BlueClose12Auto extends NextFTCOpMode {
 
         PedroComponent.follower().setStartingPose(new Pose(20.300, 122.600, Math.toRadians(140)));
 
+        Command shoot = new SequentialGroup(
+                Shooter.INSTANCE.openGate,
+                new Delay(0.7),
+                intakeOn,
+                transferOn,
+                new Delay(1.5),
+                intakeOff,
+                transferOff,
+                new ParallelGroup(Shooter.INSTANCE.closeGate, intakeOff)
+        );
+
         Paths paths = new Paths();
 
         new SequentialGroup(
-                Shooter.INSTANCE.setSpeedCommand(2600),
+                Shooter.INSTANCE.setSpeedCommand(2300),
                 new FollowPath(paths.Shoot1),
                 shoot, //shoot
                 new FollowPath(paths.Grab1Init),
                 intakeOn,
                 new FollowPath(paths.Grab1Grab, true, 0.7),
+                new FollowPath(paths.GatePush, true, 0.5),
                 new FollowPath(paths.Shoot2),
                 intakeOff,
                 shoot, //shoot

@@ -6,10 +6,16 @@ import java.util.TreeMap;
 public class InterpolatedLookupTable {
 
     private final NavigableMap<Double, Double> table = new TreeMap<>();
+    private final double min, max;
 
-    public InterpolatedLookupTable() {}
+    public InterpolatedLookupTable(double min, double max) {
+        this.min = 2250;
+        this.max = 3700;
+    }
 
-    public InterpolatedLookupTable(double... params) {
+    public InterpolatedLookupTable(double min, double max, double... params) {
+        this.min = min;
+        this.max = max;
         for (int i = 0; i < params.length; i += 2) {
             double distance = params[i];
             double velocity = params[i + 1];
@@ -39,10 +45,10 @@ public class InterpolatedLookupTable {
 
         // Clamp if outside range
         if (lower == null) {
-            return upper.getValue();
+            return min;
         }
         if (upper == null) {
-            return lower.getValue();
+            return max;
         }
 
         // Linear interpolation

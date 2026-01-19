@@ -22,16 +22,20 @@ public class Shooter implements Subsystem {
     private Shooter() {}
 
     // use equation VS. use InterpLUT to compute velocity
-    private boolean usePhysics = true;
+    private boolean usePhysics = false;
 
     InterpolatedLookupTable interplut = new InterpolatedLookupTable(
-            43.8, 2250,
-            55.9, 2450,
-            68.25, 2575,
-            85.6, 2725,
-            101.8, 2975,
-            143.3, 3550,
-            157.5, 3800
+            2250, 3700, // min and max to clamp to
+            47.9, 2250,
+            57.4, 2350,
+            68.7, 2450,
+            82.6, 2675,
+            93.5, 2750,
+            98.5, 2750,
+            111.1, 2975,
+            120.9, 3225,
+            138.3, 3425,
+            148.3, 3700
     );
 
     // set as many motors as you want with one line of code
@@ -58,6 +62,8 @@ public class Shooter implements Subsystem {
 
     public double targetSpeed = 2800;
     public double upValue = 0;
+    public double power_rate_per_sec = 3; // limit change in power to limit current
+    public double last_timestamp = (double) System.currentTimeMillis();
 
     public Command off = new RunToVelocity(control, 0)
             .requires(this)
@@ -76,11 +82,13 @@ public class Shooter implements Subsystem {
     }
 
     // weird thing only for auto
-    public Command onFromDistSupplier(DoubleSupplier dist) {
+    public Command onFromDistSupplier(DoubleSupplier dist, double overridetrigger, double overrideamt) {
         return new Command() {
                 @Override
                 public boolean isDone() {
-                    setSpeedFromDistance(dist.getAsDouble());
+                    double d = dist.getAsDouble();
+                    if (d > overridetrigger) d = overrideamt;
+                    setSpeedFromDistance(d);
                     return true;
                 }
             };
@@ -97,7 +105,7 @@ public class Shooter implements Subsystem {
     }
 
     public void setSpeed(double rpm) {
-        rpm += upValue;
+        //rpm += upValue;
         if (Math.abs(rpm - targetSpeed) > 5) targetSpeed = rpm;
 
         on = new RunToVelocity(control, targetSpeed * rpmToPPS)
@@ -174,10 +182,20 @@ public class Shooter implements Subsystem {
 
     @Override
     public void periodic() {
+        double cur = (double) System.currentTimeMillis();
+        double dt = (cur - last_timestamp) / 1000.0;
+        last_timestamp = cur;
+
         if (Math.abs(control.getGoal().getVelocity()) < 100) {
             motors.setPower(0);
         } else {
-            motors.setPower(control.calculate(motors.getState()));
+            double target_effort = control.calculate(motors.getState());
+            double cur_effort = motors.getPower();
+            if (Math.abs(target_effort - cur_effort) > power_rate_per_sec * dt && Math.abs(control.getGoal().getVelocity() - motors.getVelocity()) > 100) {
+                motors.setPower(cur_effort + power_rate_per_sec * dt * Math.signum(target_effort - cur_effort));
+            } else {
+                motors.setPower(target_effort);
+            }
         }
 
         if (getCurrentSpeed() < 1500) {
