@@ -122,7 +122,7 @@ public class BlueFar extends NextFTCOpMode {
 
     private MotorEx intake = new MotorEx("Intake");
     private MotorEx transfer = new MotorEx("Transfer");
-    private Command intakeOn = new SetPower(intake, -1);
+    private Command intakeOn = new SetPower(intake, 1);
     private Command intakeOff = new SetPower(intake, 0);
     private Command transferOnHalf = new SetPower(transfer, -0.75);
     private Command transferOn = new SetPower(transfer, -1);

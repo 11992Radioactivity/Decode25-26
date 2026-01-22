@@ -169,7 +169,7 @@ public class BlueClose12Auto extends NextFTCOpMode {
 
     private MotorEx intake = new MotorEx("Intake");
     private MotorEx transfer = new MotorEx("Transfer");
-    private Command intakeOn = new SetPower(intake, -1);
+    private Command intakeOn = new SetPower(intake, 1);
     private Command intakeOff = new SetPower(intake, 0);
     private Command transferOn = new SetPower(transfer, -1);
     private Command transferOff = new SetPower(transfer, 0);
@@ -199,7 +199,7 @@ public class BlueClose12Auto extends NextFTCOpMode {
         Paths paths = new Paths();
 
         new SequentialGroup(
-                Shooter.INSTANCE.setSpeedCommand(2300),
+                Shooter.INSTANCE.setSpeedCommand(2250),
                 new FollowPath(paths.Shoot1),
                 shoot, //shoot
                 new FollowPath(paths.Grab1Init),

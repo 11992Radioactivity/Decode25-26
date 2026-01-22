@@ -39,18 +39,16 @@ public class Shooter implements Subsystem {
     );
 
     // set as many motors as you want with one line of code
-    private MotorGroup motors = new MotorGroup(
-            (new MotorEx("FlyWheelR")).floatMode(), // right is leader because it doesn't have to be reversed
-            (new MotorEx("FlyWheelL")).reversed().floatMode()
-    );
-    private ServoEx gate = new ServoEx("Gate");
-    private ServoEx light = new ServoEx("Indicator");
+    private MotorGroup motors;
+    private ServoEx gate;
+    private ServoEx light;
+    private boolean initialized = false;
 
     // - feedforward is good for general use but doesn't react fast
     // - pid is good for fast reaction but goes to 0 at setpoint which is bad for flywheel
     // solution = combine both for ultimate flywheel controller
     private ControlSystem control = ControlSystem.builder()
-            .basicFF(0.0054 / 12, 0, 2.945 / 12) // power proportional to speed
+            .basicFF(0.005 / 12, 0, 1.0468 / 12) // power proportional to speed
             .velPid(0.01) // power proportional to distance between current and set speed
             .build();
 
@@ -182,6 +180,17 @@ public class Shooter implements Subsystem {
 
     @Override
     public void periodic() {
+        // no race conditions >:(
+        if (!initialized) {
+            initialized = true;
+            motors = new MotorGroup(
+                    (new MotorEx("FlyWheelR")).floatMode(), // right is leader because it doesn't have to be reversed
+                    (new MotorEx("FlyWheelL")).reversed().floatMode()
+            );
+            gate = new ServoEx("Gate");
+            light = new ServoEx("Indicator");
+        }
+
         double cur = (double) System.currentTimeMillis();
         double dt = (cur - last_timestamp) / 1000.0;
         last_timestamp = cur;

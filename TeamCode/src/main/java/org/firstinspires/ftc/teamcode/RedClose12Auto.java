@@ -170,7 +170,7 @@ public class RedClose12Auto extends NextFTCOpMode {
 
     private MotorEx intake = new MotorEx("Intake");
     private MotorEx transfer = new MotorEx("Transfer");
-    private Command intakeOn = new SetPower(intake, -1);
+    private Command intakeOn = new SetPower(intake, 1);
     private Command intakeOff = new SetPower(intake, 0);
     private Command transferOn = new SetPower(transfer, -1);
     private Command transferOff = new SetPower(transfer, 0);
@@ -195,10 +195,10 @@ public class RedClose12Auto extends NextFTCOpMode {
 
         Command shoot = new SequentialGroup(
                 Shooter.INSTANCE.openGate,
-                new Delay(0.7),
+                new Delay(0.3),
                 intakeOn,
                 transferOn,
-                new Delay(1.5),
+                new Delay(1.25),
                 intakeOff,
                 transferOff,
                 new ParallelGroup(Shooter.INSTANCE.closeGate, intakeOff)
@@ -207,7 +207,7 @@ public class RedClose12Auto extends NextFTCOpMode {
         Paths paths = new Paths();
 
         new SequentialGroup(
-                Shooter.INSTANCE.setSpeedCommand(2300),
+                Shooter.INSTANCE.setSpeedCommand(2250),
                 new FollowPath(paths.Shoot1),
                 shoot, //shoot
                 new FollowPath(paths.Grab1Init),

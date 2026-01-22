@@ -82,6 +82,7 @@ public class ManualTeleOp extends NextFTCOpMode {
     private boolean heading_cam_adjusted = false;
     private Pose last_heading_pose = new Pose();
     private double last_heading_time = 0;
+    private double last_bumper_adjust = 0;
     private double last_heading = 0;
     private double last_timestamp;
     private double heading_offset = 0;
@@ -198,7 +199,7 @@ public class ManualTeleOp extends NextFTCOpMode {
         Command shootCommand = new SequentialGroup(
                 Shooter.INSTANCE.openGate,
                 new Delay(0.3),
-                new SetPower(intake, -1),
+                new SetPower(intake, 1),
                 new SetPower(transfer, -1)
         );
 
@@ -210,7 +211,7 @@ public class ManualTeleOp extends NextFTCOpMode {
                         intake_on = true;
                         transfer_on = true;
                     } else {
-                        intake.setPower(-1);
+                        intake.setPower(1);
                         transfer.setPower(0);
                         Shooter.INSTANCE.closeGate.schedule();
 
@@ -279,11 +280,15 @@ public class ManualTeleOp extends NextFTCOpMode {
         gp1.leftBumper().whenTrue(() -> {
             if (!autoAim) return;
             heading_offset -= Math.toRadians(1);
+            heading_cam_adjusted = false;
+            last_bumper_adjust = System.currentTimeMillis() / 1000.0;
         });
 
         gp1.rightBumper().whenTrue(() -> {
             if (!autoAim) return;
             heading_offset += Math.toRadians(1);
+            heading_cam_adjusted = false;
+            last_bumper_adjust = System.currentTimeMillis() / 1000.0;
         });
 
         // TODO: Collect data with new shooter to see if interplut is better than physics
@@ -337,7 +342,7 @@ public class ManualTeleOp extends NextFTCOpMode {
             }
 
             // prioritize powering shooter over intake if both are on
-            UtilFunctions.currentLimitMotor(intake, (intake_on ? -1 : 0));
+            UtilFunctions.currentLimitMotor(intake, (intake_on ? 1 : 0));
             UtilFunctions.currentLimitMotor(transfer, (transfer_on ? -1 : 0));
         } else {
             Shooter.INSTANCE.closeGate.schedule();
@@ -371,7 +376,7 @@ public class ManualTeleOp extends NextFTCOpMode {
                 }
 
                 // turn towards tag once camera can see it
-                if (camera_point_to_tag && autoAim && Math.abs(angleVelRad) < Math.toRadians(5) && !heading_cam_adjusted) {
+                if (camera_point_to_tag && autoAim && Math.abs(angleVelRad) < Math.toRadians(5) && !heading_cam_adjusted && (cur_time - last_bumper_adjust) > 1) {
                     double heading_away_from_tag = camera.getAngleFromTag(tag);
                     telemetryM.addData("heading to tag", heading_away_from_tag);
                     targetHeading += Math.toRadians(heading_away_from_tag - 3);

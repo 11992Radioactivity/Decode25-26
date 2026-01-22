@@ -185,20 +185,20 @@ public class AutoTeleOp extends NextFTCOpMode {
 
         // TODO: using timers and state machine is probably easier
         if (autoAim && intake_stalled && inShootingZone(pose) && Shooter.INSTANCE.atTargetSpeed(50) && AngleUnit.normalizeRadians(angle_from_goal - pose.getHeading()) < Math.toRadians(5)) {
-            intake.setPower(-1);
+            intake.setPower(1);
             Shooter.INSTANCE.openGate.schedule();
         } else if (autoAim && !intake_stalled) {
             autoAim = false;
             Shooter.INSTANCE.closeGate.schedule();
             Shooter.INSTANCE.off.schedule();
-            intake.setPower(-1);
+            intake.setPower(1);
         } else if (intake_stalled && inShootingZone(pose) && AngleUnit.normalizeRadians(angle_from_goal - pose.getHeading()) < Math.toRadians(30)) {
             autoAim = true;
         } else if (!inShootingZone(pose)) {
             autoAim = false;
             Shooter.INSTANCE.off.schedule();
             Shooter.INSTANCE.closeGate.schedule();
-            intake.setPower(-1);
+            intake.setPower(1);
         }
 
         // TODO: Test shooting while moving

@@ -181,7 +181,7 @@ public class BlueFar15Auto extends NextFTCOpMode {
     private Pose goalPose = new Pose(4, 132);
 
     private MotorEx intake = new MotorEx("Intake");
-    private Command intakeOn = new SetPower(intake, -1);
+    private Command intakeOn = new SetPower(intake, 1);
     private Command intakeOff = new SetPower(intake, 0);
 
     private Command shoot = new SequentialGroup(
