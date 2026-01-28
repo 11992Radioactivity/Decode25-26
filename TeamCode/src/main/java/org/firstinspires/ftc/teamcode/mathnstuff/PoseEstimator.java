@@ -23,8 +23,11 @@ public class PoseEstimator {
         hKalman = new KalmanFilter(odomHeadingVariance, visionHeadingVariance);
 
         xKalman.setRejectionAmount(3);
+        xKalman.setOverrideAmount(10);
         yKalman.setRejectionAmount(3);
+        yKalman.setOverrideAmount(10);
         hKalman.setRejectionAmount(Math.toRadians(5));
+        hKalman.setOverrideAmount(Math.toRadians(30));
     }
 
     public PoseEstimator(Pose initialPose) {

@@ -4,11 +4,14 @@ import com.bylazar.gamepad.GamepadManager;
 import com.bylazar.gamepad.PanelsGamepad;
 import com.bylazar.telemetry.JoinedTelemetry;
 import com.bylazar.telemetry.PanelsTelemetry;
+import com.pedropathing.control.PIDFCoefficients;
+import com.pedropathing.control.PIDFController;
 import com.pedropathing.ftc.FTCCoordinates;
 import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.pedroPathing.*;
 import org.firstinspires.ftc.teamcode.subsystems.AprilTagCamera;
 import org.firstinspires.ftc.teamcode.mathnstuff.DataStorage;
@@ -94,11 +97,27 @@ public class ManualTeleOp extends NextFTCOpMode {
     private final double adjust_heading_dist = 1; // inches moved away before rejecting camera heading to target
     private Pose goalPose;
     private Pose basePose;
-    private final double DIST_ADJUST = 6;
-    private final double aimP = 0.01; // 1 / (point to slow down at after reaching)
-    private final double aimF = 0.02;
+    private final double DIST_ADJUST = 0;
+    private final PIDFController aimPid = new PIDFController(new PIDFCoefficients(
+            0.01,
+            0,
+            0.004,
+            0.02
+    ));
     private final double parkAdjust = 0.1;
-    private final double parkP = 0.03;
+    private final PIDFController parkXPid = new PIDFController(new PIDFCoefficients(
+            0.05,
+            0,
+            0.01,
+            0.02
+    ));
+    private final PIDFController parkYPid = new PIDFController(new PIDFCoefficients(
+            0.05,
+            0,
+            0.01,
+            0.02
+    ));
+    private final double parkP = 0.05;
     private final double parkF = 0.02;
     private final double camera_latency = 0.11;
 
@@ -151,6 +170,8 @@ public class ManualTeleOp extends NextFTCOpMode {
         GamepadEx gp1 = new GamepadEx(() -> panelsGamepad1.asCombinedFTCGamepad(ActiveOpMode.gamepad1()));
         GamepadEx gp2 = new GamepadEx(() -> panelsGamepad2.asCombinedFTCGamepad(ActiveOpMode.gamepad2()));
 
+        aimPid.reset();
+
         // auto aim when in shooting mode
         DriverControlledCommand driverControlled = new MecanumDriverControlled(
                 frontLeftMotor,
@@ -161,17 +182,17 @@ public class ManualTeleOp extends NextFTCOpMode {
                     if (!parking) return p;
 
                     double error = basePose.getX() - PedroComponent.follower().getPose().getX();
-                    double power = error * parkP + Math.signum(error) * parkF;
+                    parkXPid.updateError(error);
 
-                    return power * (onBlue ? -1 : 1);
+                    return parkXPid.run() * (onBlue ? -1 : 1);
                 }),
                 gp1.leftStickX().deadZone(0.3).map(p -> {
                     if (!parking) return p;
 
                     double error = basePose.getY() - PedroComponent.follower().getPose().getY();
-                    double power = error * parkP + Math.signum(error) * parkF;
+                    parkYPid.updateError(error);
 
-                    return power * (onBlue ? 1 : -1);
+                    return parkYPid.run() * (onBlue ? 1 : -1);
                 }),
                 () -> { // auto aim when in shooting mode
                     double stickX = panelsGamepad1.asCombinedFTCGamepad(ActiveOpMode.gamepad1()).right_stick_x;
@@ -190,7 +211,9 @@ public class ManualTeleOp extends NextFTCOpMode {
                     } else if (error < -180) {
                         error += 360;
                     }
-                    return -aimP * error + -aimF * Math.signum(error);
+
+                    aimPid.updateError(error);
+                    return -aimPid.run();
                 },
                 new FieldCentric(() -> Angle.fromRad(PedroComponent.follower().getHeading() + Math.PI * (onBlue ? 1 : 0)))
         );
@@ -232,6 +255,8 @@ public class ManualTeleOp extends NextFTCOpMode {
         // on off, re-enable driver control
         gp1.x().toggleOnBecomesTrue()
                 .whenBecomesTrue(() -> {
+                    parkXPid.reset();
+                    parkYPid.reset();
                     targetHeading = 0;
                     parking = true;
                 })
@@ -386,15 +411,16 @@ public class ManualTeleOp extends NextFTCOpMode {
                     last_heading_time = cur_time;
                 }
             }
-
-            if (relocalize_with_camera) {
-                //camera heading is wayyyyy too bad, so just use raw imu manually adjusted
-                PedroComponent.follower().getPoseTracker().setCurrentPoseWithOffset(
-                        poseEstimator.getCurrentEstimate().setHeading(PedroComponent.follower().getPoseTracker().getRawPose().getHeading() + heading_offset)
-                );
-            }
         }
 
+        if (relocalize_with_camera) {
+            //camera heading is wayyyyy too bad, so just use raw imu manually adjusted
+            PedroComponent.follower().getPoseTracker().setCurrentPoseWithOffset(
+                    poseEstimator.getCurrentEstimate().setHeading(AngleUnit.normalizeRadians(PedroComponent.follower().getPoseTracker().getRawPose().getHeading() + heading_offset))
+            );
+        }
+
+        telemetryM.addData("heading offset", heading_offset);
         telemetryM.addData("anglular vel", Math.toDegrees(angleVelRad));
         telemetryM.addData("target heading", Math.toDegrees(targetHeading));
         telemetryM.addData("shooter vel", Shooter.INSTANCE.getCurrentSpeed());
