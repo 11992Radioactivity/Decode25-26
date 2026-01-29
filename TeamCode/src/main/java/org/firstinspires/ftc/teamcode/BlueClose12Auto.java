@@ -85,12 +85,12 @@ public class BlueClose12Auto extends NextFTCOpMode {
                     .pathBuilder()
                     .addPath(
                             new BezierCurve(
-                                    new Pose(18.000, 82.000),
-                                    new Pose(35.229, 71.119),
-                                    new Pose(14.000, 70.000)
+                                    new Pose(18.000, 84.000),
+                                    new Pose(35.229, 84.119),
+                                    new Pose(13.000, 72.000)
                             )
                     )
-                    .setConstantHeadingInterpolation(Math.toRadians(180))
+                    .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(90))
                     .build();
 
             Shoot2 = follower
@@ -98,7 +98,7 @@ public class BlueClose12Auto extends NextFTCOpMode {
                     .addPath(
                             new BezierLine(new Pose(18.000, 84.500), shootPose)
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(135))
+                    .setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(135))
                     .build();
 
             Grab2Init = follower
@@ -156,9 +156,9 @@ public class BlueClose12Auto extends NextFTCOpMode {
             MoveOffLaunchLine = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(shootPose, new Pose(30.000, 80.00))
+                            new BezierLine(shootPose, new Pose(30.000, 70.00))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(180))
+                    .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(270))
                     .build();
         }
     }
@@ -190,7 +190,7 @@ public class BlueClose12Auto extends NextFTCOpMode {
                 new Delay(0.7),
                 intakeOn,
                 transferOn,
-                new Delay(1.5),
+                new Delay(1),
                 intakeOff,
                 transferOff,
                 new ParallelGroup(Shooter.INSTANCE.closeGate, intakeOff)
@@ -199,15 +199,17 @@ public class BlueClose12Auto extends NextFTCOpMode {
         Paths paths = new Paths();
 
         new SequentialGroup(
-                Shooter.INSTANCE.setSpeedCommand(2250),
+                Shooter.INSTANCE.setSpeedCommand(2275),
                 new FollowPath(paths.Shoot1),
                 shoot, //shoot
                 new FollowPath(paths.Grab1Init),
                 intakeOn,
                 new FollowPath(paths.Grab1Grab, true, 0.7),
                 new FollowPath(paths.GatePush, true, 0.5),
+                new Delay(0.5),
                 new FollowPath(paths.Shoot2),
                 intakeOff,
+                new Delay(0.5),
                 shoot, //shoot
                 new FollowPath(paths.Grab2Init),
                 intakeOn,

@@ -93,28 +93,28 @@ public class ManualTeleOp extends NextFTCOpMode {
     // constant variables
     private final boolean log_server = true; //TODO: MUST TURN OFF DURING COMPETITION
     private final boolean relocalize_with_camera = true;
-    private final boolean camera_point_to_tag = true;
+    private final boolean camera_point_to_tag = false;
     private final double adjust_heading_dist = 1; // inches moved away before rejecting camera heading to target
     private Pose goalPose;
     private Pose basePose;
-    private final double DIST_ADJUST = 0;
+    private final double DIST_ADJUST = -2;
     private final PIDFController aimPid = new PIDFController(new PIDFCoefficients(
-            0.01,
+            0.03,
             0,
-            0.004,
-            0.02
+            0.00125,
+            0.05
     ));
     private final double parkAdjust = 0.1;
     private final PIDFController parkXPid = new PIDFController(new PIDFCoefficients(
             0.05,
             0,
-            0.01,
+            0.0001,
             0.02
     ));
     private final PIDFController parkYPid = new PIDFController(new PIDFCoefficients(
             0.05,
             0,
-            0.01,
+            0.0001,
             0.02
     ));
     private final double parkP = 0.05;
@@ -394,14 +394,14 @@ public class ManualTeleOp extends NextFTCOpMode {
 
             if (cameraFoundTag) {
                 // relocalize if not moving so position isn't skewed
-                if (PedroComponent.follower().getVelocity().getMagnitude() < 0.1 && Math.abs(angleVelRad) < Math.toRadians(5)) {
+                if (PedroComponent.follower().getVelocity().getMagnitude() < 0.1 && Math.abs(angleVelRad) < Math.toRadians(0.1) && goalPose.distanceFrom(PedroComponent.follower().getPose()) < 90) {
                     robotPoseCamera = camera.getRobotPoseFromTag(tag);
                     double distFromTag = camera.getDistFromTag(tag);
                     poseEstimator.updateVision(robotPoseCamera, distFromTag);
                 }
 
                 // turn towards tag once camera can see it
-                if (camera_point_to_tag && autoAim && Math.abs(angleVelRad) < Math.toRadians(5) && !heading_cam_adjusted && (cur_time - last_bumper_adjust) > 1) {
+                if (camera_point_to_tag && autoAim && Math.abs(angleVelRad) < Math.toRadians(0.1) && !heading_cam_adjusted && (cur_time - last_bumper_adjust) > 1) {
                     double heading_away_from_tag = camera.getAngleFromTag(tag);
                     telemetryM.addData("heading to tag", heading_away_from_tag);
                     targetHeading += Math.toRadians(heading_away_from_tag - 3);

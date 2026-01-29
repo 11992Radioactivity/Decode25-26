@@ -87,11 +87,11 @@ public class RedClose12Auto extends NextFTCOpMode {
                     .addPath(
                             new BezierCurve(
                                     new Pose(18.000, 84.000).mirror(),
-                                    new Pose(35.229, 71.119).mirror(),
-                                    new Pose(14.000, 72.000).mirror()
+                                    new Pose(35.229, 84.119).mirror(),
+                                    new Pose(13.000, 72.000).mirror()
                             )
                     )
-                    .setConstantHeadingInterpolation(Math.toRadians(0))
+                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(90))
                     .build();
 
             Shoot2 = follower
@@ -99,7 +99,7 @@ public class RedClose12Auto extends NextFTCOpMode {
                     .addPath(
                             new BezierLine(new Pose(18.000, 84.500).mirror(), shootPose)
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(140 - 90))
+                    .setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(140 - 90))
                     .build();
 
             Grab2Init = follower
@@ -157,9 +157,9 @@ public class RedClose12Auto extends NextFTCOpMode {
             MoveOffLaunchLine = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(shootPose, new Pose(30.000, 80.00).mirror())
+                            new BezierLine(shootPose, new Pose(30.000, 70.00).mirror())
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(135 - 90), Math.toRadians(0))
+                    .setLinearHeadingInterpolation(Math.toRadians(135 - 90), Math.toRadians(270))
                     .build();
         }
     }
@@ -195,10 +195,10 @@ public class RedClose12Auto extends NextFTCOpMode {
 
         Command shoot = new SequentialGroup(
                 Shooter.INSTANCE.openGate,
-                new Delay(0.3),
+                new Delay(0.7),
                 intakeOn,
                 transferOn,
-                new Delay(1.25),
+                new Delay(1),
                 intakeOff,
                 transferOff,
                 new ParallelGroup(Shooter.INSTANCE.closeGate, intakeOff)
@@ -207,15 +207,17 @@ public class RedClose12Auto extends NextFTCOpMode {
         Paths paths = new Paths();
 
         new SequentialGroup(
-                Shooter.INSTANCE.setSpeedCommand(2250),
+                Shooter.INSTANCE.setSpeedCommand(2275),
                 new FollowPath(paths.Shoot1),
                 shoot, //shoot
                 new FollowPath(paths.Grab1Init),
                 intakeOn,
                 new FollowPath(paths.Grab1Grab, true, 0.7),
                 new FollowPath(paths.GatePush, true, 0.5),
+                new Delay(0.5),
                 new FollowPath(paths.Shoot2),
                 intakeOff,
+                new Delay(0.5),
                 shoot, //shoot
                 new FollowPath(paths.Grab2Init),
                 intakeOn,

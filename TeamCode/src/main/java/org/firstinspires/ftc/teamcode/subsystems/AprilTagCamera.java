@@ -46,8 +46,8 @@ public class AprilTagCamera {
                 .setOutputUnits(DistanceUnit.INCH, AngleUnit.DEGREES)
                 .setLensIntrinsics(680.441, 680.441, 294.849, 176.897)
                 .setCameraPose(
-                        new Position(DistanceUnit.INCH, 5.75, -3, 10.5, 0),
-                        new YawPitchRollAngles(AngleUnit.DEGREES, 8, -80, 0, 0))
+                        new Position(DistanceUnit.INCH, 5.75, -3, -10.5, 0),
+                        new YawPitchRollAngles(AngleUnit.DEGREES, 0, -80, 0, 0))
                 .build();
 
         visionPortal = new VisionPortal.Builder()
