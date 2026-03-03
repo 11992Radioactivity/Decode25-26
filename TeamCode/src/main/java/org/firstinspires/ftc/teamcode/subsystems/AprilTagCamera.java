@@ -10,6 +10,8 @@ import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.ExposureControl;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.GainControl;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
@@ -22,11 +24,13 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class AprilTagCamera {
     private AprilTagProcessor aprilTagProcessor;
     private VisionPortal visionPortal;
     private List<AprilTagDetection> detections = new ArrayList<>();
+    private boolean setExposureGain = false;
 
     public AprilTagCamera(HardwareMap hw) {
         /*
@@ -56,11 +60,20 @@ public class AprilTagCamera {
                 .addProcessor(aprilTagProcessor)
                 .build();
 
-        //PanelsCameraStream.INSTANCE.startStream(visionPortal, 15);
+        PanelsCameraStream.INSTANCE.startStream(visionPortal, 15);
     }
 
     public void update() {
         detections = aprilTagProcessor.getDetections();
+
+        if (visionPortal.getCameraState() == VisionPortal.CameraState.STREAMING) {
+            ExposureControl exposureControl = visionPortal.getCameraControl(ExposureControl.class);
+            exposureControl.setMode(ExposureControl.Mode.Manual);
+            exposureControl.setExposure((long)1, TimeUnit.MILLISECONDS);
+
+            GainControl gainControl = visionPortal.getCameraControl(GainControl.class);
+            gainControl.setGain(5);
+        }
     }
 
     public List<AprilTagDetection> getDetections() {

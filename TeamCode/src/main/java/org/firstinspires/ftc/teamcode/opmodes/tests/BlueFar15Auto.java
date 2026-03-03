@@ -1,16 +1,17 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.opmodes.tests;
 
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
 import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.pedroPathing.*;
+import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.pedroPathing.Drawing;
 import org.firstinspires.ftc.teamcode.mathnstuff.DataStorage;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 
@@ -26,9 +27,10 @@ import dev.nextftc.ftc.components.BulkReadComponent;
 import dev.nextftc.hardware.impl.MotorEx;
 import dev.nextftc.hardware.powerable.SetPower;
 
-@Autonomous(name = "Blue Close 12 Auto", preselectTeleOp = "ManualTeleOp")
-public class BlueClose12Auto extends NextFTCOpMode {
-    public BlueClose12Auto() {
+@Disabled
+@Autonomous(name = "Blue Far 15 Auto", preselectTeleOp = "TeleOp")
+public class BlueFar15Auto extends NextFTCOpMode {
+    public BlueFar15Auto() {
         addComponents(
                 new SubsystemComponent(Shooter.INSTANCE),
                 BulkReadComponent.INSTANCE,
@@ -44,7 +46,6 @@ public class BlueClose12Auto extends NextFTCOpMode {
         public PathChain Shoot1;
         public PathChain Grab1Init;
         public PathChain Grab1Grab;
-        public PathChain GatePush;
         public PathChain Shoot2;
         public PathChain Grab2Init;
         public PathChain Grab2Grab;
@@ -52,103 +53,114 @@ public class BlueClose12Auto extends NextFTCOpMode {
         public PathChain Grab3Init;
         public PathChain Grab3Grab;
         public PathChain Shoot4;
+        public PathChain Grab4Init;
+        public PathChain Grab4Grab;
+        public PathChain Shoot5;
         public PathChain MoveOffLaunchLine;
-
-        public Pose shootPose = new Pose(40.000, 100.000);
 
         public Paths() {
             Shoot1 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(20.300, 122.600), shootPose)
+                            new BezierLine(new Pose(56.000, 8.000), new Pose(56.000, 16.000))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(140), Math.toRadians(135))
+                    .setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(113.6))
                     .build();
 
             Grab1Init = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(shootPose, new Pose(50.000, 82.000))
+                            new BezierLine(new Pose(56.000, 16.000), new Pose(12.000, 20.000))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(180))
+                    .setLinearHeadingInterpolation(
+                            Math.toRadians(113.63),
+                            Math.toRadians(225)
+                    )
                     .build();
 
             Grab1Grab = follower
                     .pathBuilder()
-                    .addPath(
-                            new BezierLine(new Pose(50.000, 82.000), new Pose(18.000, 82.000))
-                    )
-                    .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(180))
-                    .build();
-
-            GatePush = follower
-                    .pathBuilder()
-                    .addPath(
-                            new BezierCurve(
-                                    new Pose(18.000, 84.000),
-                                    new Pose(35.229, 84.119),
-                                    new Pose(13.000, 72.000)
-                            )
-                    )
-                    .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(90))
+                    .addPath(new BezierLine(new Pose(12.000, 20.000), new Pose(8.000, 8.000)))
+                    .setLinearHeadingInterpolation(Math.toRadians(225), Math.toRadians(270))
                     .build();
 
             Shoot2 = follower
                     .pathBuilder()
-                    .addPath(
-                            new BezierLine(new Pose(18.000, 84.500), shootPose)
+                    .addPath(new BezierLine(new Pose(8.000, 8.000), new Pose(56.000, 16.000)))
+                    .setLinearHeadingInterpolation(
+                            Math.toRadians(270),
+                            Math.toRadians(113.63)
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(135))
                     .build();
 
             Grab2Init = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(shootPose, new Pose(50.000, 60.000))
+                            new BezierLine(new Pose(56.000, 16.000), new Pose(50.000, 36.000))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(180))
+                    .setLinearHeadingInterpolation(Math.toRadians(113.6), Math.toRadians(180))
                     .build();
 
             Grab2Grab = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(50.000, 60.000), new Pose(10.000, 60.000))
+                            new BezierLine(new Pose(50.000, 36.000), new Pose(18.000, 36.000))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(180))
+                    .setTangentHeadingInterpolation()
                     .build();
 
             Shoot3 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierCurve(
-                                    new Pose(18.000, 60.000),
-                                    new Pose(41.394, 73.321),
-                                    shootPose
-                            )
+                            new BezierLine(new Pose(18.000, 36.000), new Pose(56.000, 16.000))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(135))
+                    .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(113.6))
                     .build();
 
             Grab3Init = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(shootPose, new Pose(50.000, 37.000))
+                            new BezierLine(new Pose(56.000, 16.000), new Pose(50.000, 60.000))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(180))
+                    .setLinearHeadingInterpolation(Math.toRadians(113.6), Math.toRadians(180))
                     .build();
 
             Grab3Grab = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(50.000, 37.000), new Pose(10.000, 37.000))
+                            new BezierLine(new Pose(50.000, 60.000), new Pose(18.000, 60.000))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(180))
+                    .setTangentHeadingInterpolation()
                     .build();
 
             Shoot4 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(18.000, 36.000), shootPose)
+                            new BezierLine(new Pose(18.000, 60.000), new Pose(60.000, 84.000))
+                    )
+                    .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(135))
+                    .build();
+
+            Grab4Init = follower
+                    .pathBuilder()
+                    .addPath(
+                            new BezierLine(new Pose(60.000, 84.000), new Pose(60.000, 84.000))
+                    )
+                    .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(180))
+                    .build();
+
+            Grab4Grab = follower
+                    .pathBuilder()
+                    .addPath(
+                            new BezierLine(new Pose(60.000, 84.000), new Pose(18.000, 84.000))
+                    )
+                    .setTangentHeadingInterpolation()
+                    .build();
+
+            Shoot5 = follower
+                    .pathBuilder()
+                    .addPath(
+                            new BezierLine(new Pose(18.000, 84.000), new Pose(60.000, 84.000))
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(135))
                     .build();
@@ -156,72 +168,67 @@ public class BlueClose12Auto extends NextFTCOpMode {
             MoveOffLaunchLine = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(shootPose, new Pose(30.000, 70.00))
+                            new BezierLine(new Pose(60.000, 84.000), new Pose(30.000, 70.000))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(270))
+                    .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(180))
                     .build();
         }
     }
+
 
     private ElapsedTime timer = new ElapsedTime();
 
     private Pose goalPose = new Pose(4, 132);
 
     private MotorEx intake = new MotorEx("Intake");
-    private MotorEx transfer = new MotorEx("Transfer");
     private Command intakeOn = new SetPower(intake, 1);
     private Command intakeOff = new SetPower(intake, 0);
-    private Command transferOn = new SetPower(transfer, -1);
-    private Command transferOff = new SetPower(transfer, 0);
 
-    @Override
-    public void onInit() {
-        Shooter.INSTANCE.setSpeed(0);;
-    }
+    private Command shoot = new SequentialGroup(
+            Shooter.INSTANCE.onFromDistSupplier(() -> PedroComponent.follower().getPose().distanceFrom(goalPose) + 8, 150, 48),
+            new Delay(1),
+            new ParallelGroup(Shooter.INSTANCE.openGate, intakeOn),
+            new Delay(2),
+            new ParallelGroup(
+                    Shooter.INSTANCE.setSpeedCommand(0),
+                    intakeOff
+            )
+    );
 
     @Override
     public void onStartButtonPressed() {
         Drawing.init();
 
-        PedroComponent.follower().setStartingPose(new Pose(20.300, 122.600, Math.toRadians(140)));
-
-        Command shoot = new SequentialGroup(
-                Shooter.INSTANCE.openGate,
-                new Delay(0.7),
-                intakeOn,
-                transferOn,
-                new Delay(1),
-                intakeOff,
-                transferOff,
-                new ParallelGroup(Shooter.INSTANCE.closeGate, intakeOff)
-        );
+        PedroComponent.follower().setStartingPose(new Pose(56, 8, Math.toRadians(90)));
 
         Paths paths = new Paths();
 
         new SequentialGroup(
-                Shooter.INSTANCE.setSpeedCommand(2275),
-                new FollowPath(paths.Shoot1),
+                new FollowPath(paths.Shoot1, true, 0.5),
                 shoot, //shoot
                 new FollowPath(paths.Grab1Init),
                 intakeOn,
-                new FollowPath(paths.Grab1Grab, true, 0.7),
-                new FollowPath(paths.GatePush, true, 0.5),
-                new Delay(0.5),
-                new FollowPath(paths.Shoot2),
+                new FollowPath(paths.Grab1Grab, true, 0.5),
                 intakeOff,
-                new Delay(0.5),
+                new FollowPath(paths.Shoot2),
                 shoot, //shoot
                 new FollowPath(paths.Grab2Init),
                 intakeOn,
-                new FollowPath(paths.Grab2Grab, true, 0.7),
-                new FollowPath(paths.Shoot3),
+                new FollowPath(paths.Grab2Grab, true, 0.5),
                 intakeOff,
+                new FollowPath(paths.Shoot3),
                 shoot, //shoot
                 new FollowPath(paths.Grab3Init),
                 intakeOn,
-                new FollowPath(paths.Grab3Grab, true, 0.7),
-                new FollowPath(paths.Shoot4),
+                new FollowPath(paths.Grab3Grab, true, 0.5),
                 intakeOff,
+                new FollowPath(paths.Shoot4),
+                shoot, //shoot
+                new FollowPath(paths.Grab4Init),
+                intakeOn,
+                new FollowPath(paths.Grab4Grab, true, 0.5),
+                intakeOff,
+                new FollowPath(paths.Shoot5),
                 shoot, //shoot
                 new FollowPath(paths.MoveOffLaunchLine)
         ).schedule();

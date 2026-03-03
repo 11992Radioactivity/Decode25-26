@@ -1,13 +1,17 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
+import com.pedropathing.control.LowPassFilter;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.Vector;
+import com.qualcomm.robotcore.util.Range;
 
+import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 import org.firstinspires.ftc.teamcode.mathnstuff.InterpolatedLookupTable;
 
 import java.util.function.DoubleSupplier;
 
 import dev.nextftc.control.ControlSystem;
+import dev.nextftc.control.KineticState;
 import dev.nextftc.core.commands.Command;
 import dev.nextftc.core.subsystems.Subsystem;
 import dev.nextftc.hardware.controllable.MotorGroup;
@@ -24,45 +28,62 @@ public class Shooter implements Subsystem {
     // use equation VS. use InterpLUT to compute velocity
     private boolean usePhysics = false;
 
-    InterpolatedLookupTable interplut = new InterpolatedLookupTable(
-            2250, 3700, // min and max to clamp to
-            47.9, 2250,
-            57.4, 2350,
-            68.7, 2450,
-            82.6, 2675,
-            93.5, 2750,
-            98.5, 2750,
-            111.1, 2975,
-            120.9, 3225,
-            138.3, 3425,
-            148.3, 3700
+    InterpolatedLookupTable vel_interplut = new InterpolatedLookupTable(
+            2500, 3700, // min and max to clamp to
+            40, 2500,
+            60, 2600,
+            70, 2800,
+            80, 3150,
+            100, 3400,
+            120, 4200,
+            140, 4400,
+            160, 4600
     );
+
+    InterpolatedLookupTable hood_interplut = new InterpolatedLookupTable(
+            1, 0.3, // min and max to clamp to
+            60, 0.7,
+            80, 0.6,
+            100, 0.5,
+            120, 0.4,
+            140, 0.3,
+            160, 0.3
+    );
+
+    private MotorEx leftMotor = new MotorEx("FlyWheelL").brakeMode();
+    private MotorEx rightMotor = new MotorEx("FlyWheelR").reversed().brakeMode();
 
     // set as many motors as you want with one line of code
     private MotorGroup motors = new MotorGroup(
-            (new MotorEx("FlyWheelR")).floatMode(), // right is leader because it doesn't have to be reversed
-            (new MotorEx("FlyWheelL")).reversed().floatMode()
+            leftMotor,
+            rightMotor // right is leader because it doesn't have to be reversed
     );
     private ServoEx gate = new ServoEx("Gate");
     private ServoEx light = new ServoEx("Indicator");
+    private ServoEx hood = new ServoEx("Hood");
 
+    private double kV = 0.005;
+    private double kS = 0.7917;
+    private double kPdef = 0.01;
+    private double kP = kPdef;
     // - feedforward is good for general use but doesn't react fast
     // - pid is good for fast reaction but goes to 0 at setpoint which is bad for flywheel
     // solution = combine both for ultimate flywheel controller
     private ControlSystem control = ControlSystem.builder()
-            .basicFF(0.005 / 12, 0, 1.0468 / 12) // power proportional to speed
-            .velPid(0.01) // power proportional to distance between current and set speed
+            .basicFF(kV / 12, 0, kS / 12) // power proportional to speed
+            .velPid(kP) // power proportional to distance between current and set speed
             .build();
 
     private double ppr = 28; // pulses per revolution (28 for 6k rpm)
     private double rpmToPPS = ppr / 60; // (rpm / 60) * ppr
 
-    private double gate_closed = 0.0;
+    private double gate_closed = 0.1;
     private double gate_opened = 0.4;
 
     public double targetSpeed = 2800;
+    public LowPassFilter speedFilter = new LowPassFilter(0.9);
     public double upValue = 0;
-    public double power_rate_per_sec = 3; // limit change in power to limit current
+    public double power_rate_per_sec = 1; // limit change in power to limit current
     public double last_timestamp = (double) System.currentTimeMillis();
 
     public Command off = new RunToVelocity(control, 0)
@@ -74,10 +95,35 @@ public class Shooter implements Subsystem {
     public Command openGate = new SetPosition(gate, gate_opened);
     public Command closeGate = new SetPosition(gate, gate_closed);
 
+    public void closeGate() {
+        gate.setPosition(gate_closed);
+    }
+
+    public void openGate() {
+        gate.setPosition(gate_opened);
+    }
+
+    public double hood_deg_to_pos(double deg) {
+        return deg * (7.0/180.0) - 65 * (7.0/180.0) + 0.7;
+    }
+
+    public double hood_pos_to_deg(double pos) {
+        return pos * (180.0/7.0) - 0.7 * (180.0/7.0) + 65;
+    }
+
+    // when just maintaining inertia, minimize vibration with no proportional gain
+    public void setPtoZero() {
+        kP = 0;
+    }
+
+    public void setPtoDefault() {
+        kP = kPdef;
+    }
+
     public void setVoltage(double voltage) {
-        control = ControlSystem.builder()
-                .basicFF(0.00506 / voltage, 0, 2.8222 / voltage)
-                .velPid(0.01)
+        control = control = ControlSystem.builder()
+                .basicFF(kV / voltage, 0, kS / voltage)
+                .velPid(kP)
                 .build();
     }
 
@@ -115,7 +161,7 @@ public class Shooter implements Subsystem {
     }
 
     // https://www.desmos.com/calculator/rfsibijg0u
-    private double getSpeedFromDistance(double distIn) {
+    public double getLinearSpeedFromDistance(double distIn) {
         // constants in inches and radians
         double gravityIn = (9.81 * 1000) / 25.4;
         double shooterAngleRad = 60 * (Math.PI / 180);
@@ -132,6 +178,16 @@ public class Shooter implements Subsystem {
         return linearSpeed;
     }
 
+    public double getTimeToGoal(double distIn) {
+        double speed = getLinearSpeedFromDistance(distIn);
+        double sin = Math.sin(Math.toRadians(60));
+        double gravityIn = (9.81 * 1000) / 25.4;
+        double n1 = speed * sin;
+        double n2 = Math.sqrt(speed*speed * sin*sin - (2 * gravityIn * (-16)));
+        double time = (n1 + n2) / gravityIn;
+        return time;
+    }
+
     private void setSpeedFromLinearSpeed(double speedIn) {
         // linear speed to angular speed with a linear regression
         double a = 13.76347;
@@ -143,11 +199,18 @@ public class Shooter implements Subsystem {
 
     public void setSpeedFromDistance(double distIn) {
         if (usePhysics) {
-            double linearSpeed = getSpeedFromDistance(distIn);
+            double linearSpeed = getLinearSpeedFromDistance(distIn);
             setSpeedFromLinearSpeed(linearSpeed);
         } else {
-            setSpeed(interplut.get(distIn));
+            setSpeed(vel_interplut.get(distIn));
         }
+
+        double hood_pos = hood_interplut.get(distIn);
+        double vel_diff = getTargetSpeed() - getCurrentSpeed();
+        double hood_offset = (-2.5 * vel_diff) / 125.0;
+        hood_pos = hood_deg_to_pos(hood_pos_to_deg(hood_pos) + hood_offset);
+        hood_pos = Range.clip(hood_pos, hood_interplut.get(999), hood_interplut.get(0));
+        hood.setPosition(hood_pos);
     }
 
     // set speed by subtracting velocity from goal position
@@ -157,14 +220,14 @@ public class Shooter implements Subsystem {
         // iterate until distance from goal and speed converge
         for (int i = 0; i < 3; i++) {
             double dist = goalPose.distanceFrom(robotPose);
-            double linearSpeed = getSpeedFromDistance(dist);
+            double linearSpeed = getLinearSpeedFromDistance(dist);
             double time = dist / (linearSpeed * Math.cos(Math.PI / 3));
             Vector newPose = goalPose.getAsVector().minus(robotVelocity.copy().times(time));
             goalPose = new Pose(newPose.getXComponent(), newPose.getYComponent());
         }
 
         double dist = goalPose.distanceFrom(robotPose);
-        double linearSpeed = getSpeedFromDistance(dist);
+        double linearSpeed = getLinearSpeedFromDistance(dist);
         setSpeedFromLinearSpeed(linearSpeed);
     }
 
@@ -172,8 +235,12 @@ public class Shooter implements Subsystem {
         return Math.abs(getTargetSpeed() - getCurrentSpeed()) < tolerance;
     }
 
+    public boolean aboveTargetSpeed(double tolerance) {
+        return (getCurrentSpeed() - getTargetSpeed()) > tolerance;
+    }
+
     public double getCurrentSpeed() {
-        return motors.getVelocity() / rpmToPPS;
+        return speedFilter.getState() / rpmToPPS;
     }
 
     public double getTargetSpeed() {
@@ -186,20 +253,32 @@ public class Shooter implements Subsystem {
         double dt = (cur - last_timestamp) / 1000.0;
         last_timestamp = cur;
 
+        speedFilter.update(motors.getVelocity(), 0);
+
+        KineticState state = new KineticState(motors.getState().getPosition(), getCurrentSpeed() * rpmToPPS, motors.getState().getAcceleration());
         if (Math.abs(control.getGoal().getVelocity()) < 100) {
-            motors.setPower(0);
+            motors.setPower(-0.01);
         } else {
-            double target_effort = control.calculate(motors.getState());
-            double cur_effort = motors.getPower();
+            double target_effort = control.calculate(state);
+
+            double avg_current = (leftMotor.getMotor().getCurrent(CurrentUnit.AMPS) + rightMotor.getMotor().getCurrent(CurrentUnit.AMPS)) / 2;
+            if (avg_current > 6) {
+                target_effort = 0.05;
+            }
+
+            motors.setPower(target_effort);
+
+            /*double cur_effort = motors.getPower();
             if (Math.abs(target_effort - cur_effort) > power_rate_per_sec * dt && Math.abs(control.getGoal().getVelocity() - motors.getVelocity()) > 100) {
                 motors.setPower(cur_effort + power_rate_per_sec * dt * Math.signum(target_effort - cur_effort));
             } else {
                 motors.setPower(target_effort);
-            }
+            }*/
         }
 
-        if (getCurrentSpeed() < 1500) {
+        if (getCurrentSpeed() < 2300) {
             light.setPosition(0);
+            hood.setPosition(hood_interplut.get(0));
         } else {
             if (atTargetSpeed(50)) {
                 light.setPosition(0.5); // Green

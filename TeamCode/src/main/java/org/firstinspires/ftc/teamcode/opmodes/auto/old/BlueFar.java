@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.opmodes.auto.old;
 
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
@@ -109,7 +109,7 @@ public class BlueFar extends NextFTCOpMode {
             GoPark = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(shootPose, new Pose(16.000, 16.000))
+                            new BezierLine(new Pose(56.000, 8.000), new Pose(16.000, 16.000))
                     )
                     .setTangentHeadingInterpolation()
                     .build();
@@ -168,7 +168,7 @@ public class BlueFar extends NextFTCOpMode {
         Paths paths = new Paths();
 
         new SequentialGroup(
-                Shooter.INSTANCE.setSpeedCommand(3400),
+                /*Shooter.INSTANCE.setSpeedCommand(3400),
                 new FollowPath(paths.Shoot1, true, 0.5),
                 shoot, //shoot
                 new FollowPath(paths.Grab1Init),
@@ -180,7 +180,7 @@ public class BlueFar extends NextFTCOpMode {
                 new FollowPath(paths.Grab1Grab3, true, 0.7),
                 new FollowPath(paths.Shoot2, true, 0.7),
                 intakeOff,
-                shoot,
+                shoot,*/
                 new FollowPath(paths.GoPark)
                 //Shooter.INSTANCE.off//shoot
                 /*new FollowPath(paths.Grab3Init),

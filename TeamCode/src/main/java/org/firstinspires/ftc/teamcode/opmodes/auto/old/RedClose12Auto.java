@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.opmodes.auto.old;
 
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
@@ -55,7 +55,7 @@ public class RedClose12Auto extends NextFTCOpMode {
         public PathChain Shoot4;
         public PathChain MoveOffLaunchLine;
 
-        public Pose shootPose = new Pose(40.000, 100.000).mirror();
+        public Pose shootPose = new Pose(48.000, 96.000).mirror();
 
         public Paths() {
             Shoot1 = follower
@@ -77,7 +77,7 @@ public class RedClose12Auto extends NextFTCOpMode {
             Grab1Grab = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(50.000, 84.000).mirror(), new Pose(18.000, 84.000).mirror())
+                            new BezierLine(new Pose(50.000, 84.000).mirror(), new Pose(16.000, 84.000).mirror())
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
                     .build();
@@ -86,9 +86,9 @@ public class RedClose12Auto extends NextFTCOpMode {
                     .pathBuilder()
                     .addPath(
                             new BezierCurve(
-                                    new Pose(18.000, 84.000).mirror(),
+                                    new Pose(16.000, 84.000).mirror(),
                                     new Pose(35.229, 84.119).mirror(),
-                                    new Pose(13.000, 72.000).mirror()
+                                    new Pose(13.000, 74.000).mirror()
                             )
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(90))
@@ -97,7 +97,7 @@ public class RedClose12Auto extends NextFTCOpMode {
             Shoot2 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(18.000, 84.500).mirror(), shootPose)
+                            new BezierLine(new Pose(13.000, 74.000).mirror(), shootPose)
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(140 - 90))
                     .build();
@@ -122,7 +122,7 @@ public class RedClose12Auto extends NextFTCOpMode {
                     .pathBuilder()
                     .addPath(
                             new BezierCurve(
-                                    new Pose(18.000, 60.000).mirror(),
+                                    new Pose(10.000, 60.000).mirror(),
                                     new Pose(41.394, 73.321).mirror(),
                                     shootPose
                             )
@@ -149,9 +149,9 @@ public class RedClose12Auto extends NextFTCOpMode {
             Shoot4 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(18.000, 36.000).mirror(), shootPose)
+                            new BezierLine(new Pose(10.000, 37.000).mirror(), new Pose(60.000, 110.000))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(135 - 90))
+                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(180 - 152.5))
                     .build();
 
             MoveOffLaunchLine = follower
@@ -175,16 +175,13 @@ public class RedClose12Auto extends NextFTCOpMode {
     private Command transferOn = new SetPower(transfer, -1);
     private Command transferOff = new SetPower(transfer, 0);
 
-    private Command shootIndividual = new SequentialGroup(
-            intakeOn,
-            new Delay(0.3),
-            intakeOff,
-            new Delay(0.2)
-    );
+    private Command auto;
+    private double curTime = 0;
+    private boolean done = false;
 
     @Override
     public void onInit() {
-        Shooter.INSTANCE.off.schedule();
+        Shooter.INSTANCE.setSpeed(0);
     }
 
     @Override
@@ -195,10 +192,10 @@ public class RedClose12Auto extends NextFTCOpMode {
 
         Command shoot = new SequentialGroup(
                 Shooter.INSTANCE.openGate,
-                new Delay(0.7),
+                new Delay(0.3),
                 intakeOn,
                 transferOn,
-                new Delay(1),
+                new Delay(0.5),
                 intakeOff,
                 transferOff,
                 new ParallelGroup(Shooter.INSTANCE.closeGate, intakeOff)
@@ -206,18 +203,18 @@ public class RedClose12Auto extends NextFTCOpMode {
 
         Paths paths = new Paths();
 
-        new SequentialGroup(
-                Shooter.INSTANCE.setSpeedCommand(2275),
+        auto = new SequentialGroup(
+                Shooter.INSTANCE.setSpeedCommand(2725),
                 new FollowPath(paths.Shoot1),
+                new Delay(0.5),
                 shoot, //shoot
                 new FollowPath(paths.Grab1Init),
                 intakeOn,
                 new FollowPath(paths.Grab1Grab, true, 0.7),
-                new FollowPath(paths.GatePush, true, 0.5),
+                new FollowPath(paths.GatePush, true, 0.7),
                 new Delay(0.5),
                 new FollowPath(paths.Shoot2),
                 intakeOff,
-                new Delay(0.5),
                 shoot, //shoot
                 new FollowPath(paths.Grab2Init),
                 intakeOn,
@@ -231,15 +228,31 @@ public class RedClose12Auto extends NextFTCOpMode {
                 new FollowPath(paths.Shoot4),
                 intakeOff,
                 shoot, //shoot
-                new FollowPath(paths.MoveOffLaunchLine)
-        ).schedule();
+                new Command() {
+                    @Override
+                    public boolean isDone() {
+                        done = true;
+                        return true;
+                    }
+                }
+                //new FollowPath(paths.MoveOffLaunchLine),
+        );
+
+        auto.schedule();
 
         timer.reset();
     }
 
     @Override
     public void onUpdate() {
-        telemetryM.debug("time", timer.seconds());
+        if (!done) {
+            curTime = timer.seconds();
+            DataStorage.INSTANCE.onBlue = false;
+            DataStorage.INSTANCE.teleopStartPose = PedroComponent.follower().getPose();
+        } else {
+            Shooter.INSTANCE.setSpeed(0);
+        }
+        telemetryM.debug("time", curTime);
         telemetryM.debug("position", PedroComponent.follower().getPose());
         telemetryM.debug("velocity", PedroComponent.follower().getVelocity());
 
@@ -249,8 +262,6 @@ public class RedClose12Auto extends NextFTCOpMode {
 
     @Override
     public void onStop() {
-        Shooter.INSTANCE.off.schedule();
-        DataStorage.INSTANCE.onBlue = false;
-        DataStorage.INSTANCE.teleopStartPose = PedroComponent.follower().getPose().minus(new Pose(0, 0, Math.toRadians(7.5)));
+        Shooter.INSTANCE.setSpeed(0);
     }
 }

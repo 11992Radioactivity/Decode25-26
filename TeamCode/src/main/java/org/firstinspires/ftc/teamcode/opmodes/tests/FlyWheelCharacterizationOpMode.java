@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.tests;
+package org.firstinspires.ftc.teamcode.opmodes.tests;
 
 import com.bylazar.telemetry.JoinedTelemetry;
 import com.bylazar.telemetry.PanelsTelemetry;
@@ -21,8 +21,8 @@ public class FlyWheelCharacterizationOpMode extends NextFTCOpMode {
 
     JoinedTelemetry joinedTelemetry = new JoinedTelemetry(telemetry, PanelsTelemetry.INSTANCE.getFtcTelemetry());
     private MotorGroup motors = new MotorGroup(
-            (new MotorEx("FlyWheelR")).floatMode(), // right is leader because it doesn't have to be reversed
-            (new MotorEx("FlyWheelL")).reversed().floatMode()
+            (new MotorEx("FlyWheelL")).floatMode(),
+            (new MotorEx("FlyWheelR")).reversed().floatMode() // right is leader because it doesn't have to be reversed
     );
     ElapsedTime timer;
     ElapsedTime loopTimer;
