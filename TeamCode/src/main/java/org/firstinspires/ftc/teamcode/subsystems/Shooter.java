@@ -1,9 +1,14 @@
 package org.firstinspires.ftc.teamcode.subsystems;
 
+import android.graphics.Color;
+
 import com.pedropathing.control.LowPassFilter;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.Vector;
+import com.qualcomm.hardware.rev.RevColorSensorV3;
+import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 import com.qualcomm.robotcore.util.Range;
+import dev.nextftc.ftc.ActiveOpMode;
 
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 import org.firstinspires.ftc.teamcode.mathnstuff.InterpolatedLookupTable;
@@ -29,25 +34,21 @@ public class Shooter implements Subsystem {
     private boolean usePhysics = false;
 
     InterpolatedLookupTable vel_interplut = new InterpolatedLookupTable(
-            2500, 3700, // min and max to clamp to
-            40, 2500,
-            60, 2600,
-            70, 2800,
-            80, 3150,
-            100, 3400,
-            120, 4200,
-            140, 4400,
-            160, 4600
+            2200, 3050, // min and max to clamp to
+            40, 2200,
+            60, 2300,
+            70, 2500,
+            80, 2800,
+            100, 2850,
+            120, 3050
     );
 
     InterpolatedLookupTable hood_interplut = new InterpolatedLookupTable(
-            1, 0.3, // min and max to clamp to
+            0.7, 0.25, // min and max to clamp to
             60, 0.7,
             80, 0.6,
             100, 0.5,
-            120, 0.4,
-            140, 0.3,
-            160, 0.3
+            120, 0.25
     );
 
     private MotorEx leftMotor = new MotorEx("FlyWheelL").brakeMode();
@@ -62,11 +63,11 @@ public class Shooter implements Subsystem {
     private ServoEx light = new ServoEx("Indicator");
     private ServoEx hood = new ServoEx("Hood");
 
-    private double kV = 0.005;
-    private double kS = 0.7917;
-    private double kPdef = 0.01;
+    private double kV = 0.0047;
+    private double kS = 1.5009;
+    private double kPdef = 0.0025;
     private double kP = kPdef;
-    // - feedforward is good for general use but doesn't react fast
+     // - feedforward is good for general use but doesn't react fast
     // - pid is good for fast reaction but goes to 0 at setpoint which is bad for flywheel
     // solution = combine both for ultimate flywheel controller
     private ControlSystem control = ControlSystem.builder()
@@ -74,12 +75,13 @@ public class Shooter implements Subsystem {
             .velPid(kP) // power proportional to distance between current and set speed
             .build();
 
-    private double ppr = 28; // pulses per revolution (28 for 6k rpm)
-    private double rpmToPPS = ppr / 60; // (rpm / 60) * ppr
+    private final double ppr = 28; // pulses per revolution (28 for 6k rpm)
+    private final double rpmToPPS = ppr / 60; // (rpm / 60) * ppr
 
-    private double gate_closed = 0.1;
-    private double gate_opened = 0.4;
+    private final double gate_closed = 0.1;
+    private final double gate_opened = 0.4;
 
+    public double hood_pos = 0.7;
     public double targetSpeed = 2800;
     public LowPassFilter speedFilter = new LowPassFilter(0.9);
     public double upValue = 0;
@@ -114,14 +116,16 @@ public class Shooter implements Subsystem {
     // when just maintaining inertia, minimize vibration with no proportional gain
     public void setPtoZero() {
         kP = 0;
+        setVoltage(12);
     }
 
     public void setPtoDefault() {
         kP = kPdef;
+        setVoltage(12);
     }
 
     public void setVoltage(double voltage) {
-        control = control = ControlSystem.builder()
+        control = ControlSystem.builder()
                 .basicFF(kV / voltage, 0, kS / voltage)
                 .velPid(kP)
                 .build();
@@ -205,12 +209,11 @@ public class Shooter implements Subsystem {
             setSpeed(vel_interplut.get(distIn));
         }
 
-        double hood_pos = hood_interplut.get(distIn);
-        double vel_diff = getTargetSpeed() - getCurrentSpeed();
-        double hood_offset = (-2.5 * vel_diff) / 125.0;
-        hood_pos = hood_deg_to_pos(hood_pos_to_deg(hood_pos) + hood_offset);
-        hood_pos = Range.clip(hood_pos, hood_interplut.get(999), hood_interplut.get(0));
-        hood.setPosition(hood_pos);
+        hood_pos = hood_interplut.get(distIn);
+    }
+
+    public void setHoodPos(double pos) {
+        hood_pos = Range.clip(pos, hood_interplut.get(0), hood_interplut.get(999));
     }
 
     // set speed by subtracting velocity from goal position
@@ -247,6 +250,18 @@ public class Shooter implements Subsystem {
         return targetSpeed;
     }
 
+    public void setLightGreen() {
+        light.setPosition(0.5);
+    }
+
+    public void setLightRed() {
+        light.setPosition(0.28);
+    }
+
+    public void lightOff() {
+        light.setPosition(0);
+    }
+
     @Override
     public void periodic() {
         double cur = (double) System.currentTimeMillis();
@@ -258,15 +273,22 @@ public class Shooter implements Subsystem {
         KineticState state = new KineticState(motors.getState().getPosition(), getCurrentSpeed() * rpmToPPS, motors.getState().getAcceleration());
         if (Math.abs(control.getGoal().getVelocity()) < 100) {
             motors.setPower(-0.01);
+            hood.setPosition(hood_pos);
         } else {
             double target_effort = control.calculate(state);
 
-            double avg_current = (leftMotor.getMotor().getCurrent(CurrentUnit.AMPS) + rightMotor.getMotor().getCurrent(CurrentUnit.AMPS)) / 2;
+            /*double avg_current = (leftMotor.getMotor().getCurrent(CurrentUnit.AMPS) + rightMotor.getMotor().getCurrent(CurrentUnit.AMPS)) / 2;
             if (avg_current > 6) {
                 target_effort = 0.05;
-            }
+            }*/
 
             motors.setPower(target_effort);
+
+            double vel_diff = getTargetSpeed() - getCurrentSpeed();
+            double hood_offset = (-2.5 * vel_diff) / 125.0;
+            double new_hood_pos = hood_deg_to_pos(hood_pos_to_deg(hood_pos) + hood_offset);
+            new_hood_pos = Range.clip(new_hood_pos, hood_interplut.get(999), hood_interplut.get(0));
+            hood.setPosition(new_hood_pos);
 
             /*double cur_effort = motors.getPower();
             if (Math.abs(target_effort - cur_effort) > power_rate_per_sec * dt && Math.abs(control.getGoal().getVelocity() - motors.getVelocity()) > 100) {
@@ -277,7 +299,7 @@ public class Shooter implements Subsystem {
         }
 
         if (getCurrentSpeed() < 2300) {
-            light.setPosition(0);
+            //light.setPosition(0);
             hood.setPosition(hood_interplut.get(0));
         } else {
             if (atTargetSpeed(50)) {

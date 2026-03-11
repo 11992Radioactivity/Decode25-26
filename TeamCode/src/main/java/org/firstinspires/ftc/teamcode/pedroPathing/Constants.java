@@ -21,8 +21,8 @@ public class Constants {
     public static FollowerConstants followerConstants = new FollowerConstants()
             .mass(11)
             .predictiveBrakingCoefficients(new PredictiveBrakingCoefficients(0.3, 0.1211,0.0017011))
-            .forwardZeroPowerAcceleration(-42.072)
-            .lateralZeroPowerAcceleration(-67.58)
+            .forwardZeroPowerAcceleration(-35.023)
+            .lateralZeroPowerAcceleration(-56.549)
             .secondaryHeadingPIDFCoefficients(new PIDFCoefficients(1, 0, .01, 0))
             .headingPIDFCoefficients(new PIDFCoefficients(1, 0, 0.01, 0))
             .translationalPIDFCoefficients(new PIDFCoefficients(0.015,0,0.003,0))
@@ -98,8 +98,8 @@ public class Constants {
             .leftRearMotorDirection(DcMotorSimple.Direction.REVERSE)
             .rightFrontMotorDirection(DcMotorSimple.Direction.FORWARD)
             .rightRearMotorDirection(DcMotorSimple.Direction.FORWARD)
-            .xVelocity(71.0092)
-            .yVelocity(65.181987);
+            .xVelocity(70.1223)
+            .yVelocity(47.1268);
 
     // TODO: FIND NEW POSITIONS AFTER MOVING DRIVE MOTORS BACK
     public static PinpointConstants localizerConstants = new PinpointConstants()

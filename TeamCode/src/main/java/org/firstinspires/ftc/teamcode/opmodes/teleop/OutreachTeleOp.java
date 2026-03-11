@@ -51,10 +51,18 @@ public class OutreachTeleOp extends NextFTCOpMode {
     private boolean intake_on = false;
     private boolean shot = false;
     private double voltage = 12;
+    private double last_timestamp;
 
     private Command shootCommand = new SequentialGroup(
             Shooter.INSTANCE.openGate,
             new Delay(0.3),
+            new Command() {
+                @Override
+                public boolean isDone() {
+                    intake_on = true;
+                    return true;
+                }
+            },
             new SetPower(intake, 1),
             new SetPower(transfer, -1)
     );
@@ -66,6 +74,8 @@ public class OutreachTeleOp extends NextFTCOpMode {
 
     @Override
     public void onStartButtonPressed() {
+        last_timestamp = System.currentTimeMillis() / 1000.0;
+
         telemetryM = new JoinedTelemetry(telemetry, PanelsTelemetry.INSTANCE.getFtcTelemetry());
         panelsGamepad1 = PanelsGamepad.INSTANCE.getFirstManager();
         panelsGamepad2 = PanelsGamepad.INSTANCE.getSecondManager();
@@ -75,30 +85,26 @@ public class OutreachTeleOp extends NextFTCOpMode {
 
         DriverControlledCommand driverControlled = new MecanumDriverControlled(
                 frontLeftMotor,
-                frontRightMotor,
-                backLeftMotor,
                 backRightMotor,
-                gp1.leftStickY().negate().deadZone(0.3),
-                gp1.leftStickX().deadZone(0.3),
-                gp1.rightStickX().deadZone(0.3)
+                backLeftMotor,
+                frontRightMotor,
+                gp1.rightStickX().negate().deadZone(0.3).map(p -> (p * Math.abs(p))/2),
+                gp1.leftStickX().negate().deadZone(0.3),
+                gp1.leftStickY().deadZone(0.3)
         );
         driverControlled.schedule();
 
-        gp1.b().toggleOnBecomesTrue()
-                .whenBecomesTrue(() -> {
-                    intake.setPower(1);
-                    transfer.setPower(0);
-                    Shooter.INSTANCE.closeGate();
-
-                    intake_on = true;
-                })
-                .whenBecomesFalse(() -> {
-                    intake.setPower(0);
-                    transfer.setPower(0);
-                    Shooter.INSTANCE.closeGate();
-
-                    intake_on = false;
-                });
+        gp1.b().whenBecomesTrue(() -> {
+            if (!intake_on) {
+                intake.setPower(1);
+                intake_on = true;
+            } else {
+                intake.setPower(0);
+                intake_on = false;
+            }
+            transfer.setPower(0);
+            Shooter.INSTANCE.closeGate();
+        });
 
         gp1.a().whenBecomesTrue(() -> {
             shooting = true;
@@ -114,8 +120,16 @@ public class OutreachTeleOp extends NextFTCOpMode {
         });
     }
 
+    double loop_fq = 0;
+
     @Override
     public void onUpdate() {
+        double cur_time = (System.currentTimeMillis() / 1000.0);
+        double dt = cur_time - last_timestamp;
+        last_timestamp = cur_time;
+
+        loop_fq = loop_fq * 0.95 + (1 / dt) * 0.05;
+
         voltage = hardwareMap.voltageSensor.iterator().next().getVoltage();
         Shooter.INSTANCE.setVoltage(voltage);
 
@@ -127,8 +141,6 @@ public class OutreachTeleOp extends NextFTCOpMode {
             if (!shot && Shooter.INSTANCE.aboveTargetSpeed(25)) {
                 shot = true;
                 shootCommand.schedule();
-
-                intake_on = true;
             }
         } else {
             Shooter.INSTANCE.setPtoZero();
@@ -137,15 +149,18 @@ public class OutreachTeleOp extends NextFTCOpMode {
         }
 
         double intake_current = intake.getMotor().getCurrent(CurrentUnit.AMPS);
-        if (intake_on && intake_current > 5 && intake.getPower() == 1) {
+        if (intake_on && intake_current > 6 && intake.getPower() == 1) {
             intake.setPower(0);
-        } else if (intake_on && intake_current < 5) {
+        } else if (intake_on && intake_current < 6) {
             intake.setPower(1);
         }
 
-        telemetryM.addData("intake current", intake_current);
+        telemetryM.addData("loop Hz", loop_fq);
+        //telemetryM.addData("intake current", intake_current);
         telemetryM.addData("shooter vel", Shooter.INSTANCE.getCurrentSpeed());
         telemetryM.addData("shooter target", Shooter.INSTANCE.getTargetSpeed());
+
+        telemetryM.update();
     }
 
     @Override
