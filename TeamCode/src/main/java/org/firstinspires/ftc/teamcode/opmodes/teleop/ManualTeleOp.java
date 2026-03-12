@@ -120,7 +120,7 @@ public class ManualTeleOp extends NextFTCOpMode {
     private Pose basePose;
     private final double DIST_ADJUST = 0;
     private final PIDFController aimPid = new PIDFController(new PIDFCoefficients(
-            0.01,
+            0.015,
             0,
             0.0005,//0.00125,
             0.05//0.05
@@ -304,8 +304,10 @@ public class ManualTeleOp extends NextFTCOpMode {
         // hold down bottom button to auto aim and shoot
         gp1.a().whenBecomesTrue(() -> {
             autoAim = true;
-            double dist = PedroComponent.follower().getPose().distanceFrom(goalPose);
-            Shooter.INSTANCE.setSpeedFromDistance(dist + DIST_ADJUST);
+            if (!calibrate_shooter) {
+                double dist = PedroComponent.follower().getPose().distanceFrom(goalPose);
+                Shooter.INSTANCE.setSpeedFromDistance(dist + DIST_ADJUST);
+            }
         });
 
         gp1.a().whenBecomesFalse(() -> {
@@ -503,7 +505,7 @@ public class ManualTeleOp extends NextFTCOpMode {
 
         //double intake_current = intake.getMotor().getCurrent(CurrentUnit.AMPS);
         //if ((intake_on && intake_current > 6) || (intakeSensors.counterGreaterThan(5) && !autoAim)) {
-        if (intake_on && intakeSensors.counterGreaterThan(0.6) && !autoAim && intakeTimer.seconds() > 1) {
+        if (intake_on && intakeSensors.counterGreaterThan(0.7) && !autoAim && intakeTimer.seconds() > 1) {
             intake.setPower(0);
             Shooter.INSTANCE.setLightGreen();
             intake_on = false;
@@ -516,6 +518,7 @@ public class ManualTeleOp extends NextFTCOpMode {
         telemetryM.addData("loop Hz", loop_fq);
         telemetryM.addData("intake sense ball", intakeSensors.getCount());
         telemetryM.addData("tuning speed", tuning_speed);
+        telemetryM.addData("hood pos", Shooter.INSTANCE.hood_pos);
         //telemetryM.addData("intake current", intake_current);
         telemetryM.addData("heading offset", heading_offset);
         telemetryM.addData("anglular vel", Math.toDegrees(angleVelRad));

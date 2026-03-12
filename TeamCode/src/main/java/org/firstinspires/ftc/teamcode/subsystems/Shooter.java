@@ -33,22 +33,50 @@ public class Shooter implements Subsystem {
     // use equation VS. use InterpLUT to compute velocity
     private boolean usePhysics = false;
 
+//    InterpolatedLookupTable vel_interplut = new InterpolatedLookupTable(
+//            2200, 3050, // min and max to clamp to
+//            40, 2200,
+//            60, 2300,
+//            70, 2500,
+//            80, 2800,
+//            100, 2850,
+//            120, 3050
+//    );
+//
+//    InterpolatedLookupTable hood_interplut = new InterpolatedLookupTable(
+//            0.7, 0.25, // min and max to clamp to
+//            60, 0.7,
+//            80, 0.6,
+//            100, 0.5,
+//            120, 0.25
+//    );
+
     InterpolatedLookupTable vel_interplut = new InterpolatedLookupTable(
-            2200, 3050, // min and max to clamp to
-            40, 2200,
-            60, 2300,
-            70, 2500,
-            80, 2800,
-            100, 2850,
-            120, 3050
+            2125, 3125, // min and max to clamp to
+            46.3, 2225,
+            57.4, 2125,
+            75.2, 2375,
+            84, 2500,
+            96.3, 2550,
+            133.1, 2925,
+            156.9, 3125
     );
 
+    //96.3: 2550, 0.4
+    //75.2: 2375, 0.5
+    //57.4: 2125, 0.65
+    //46.3: 2225, 0.7
+    //133.1: 2925, 0.45
+    //156.9: 3125, 0.5
+
     InterpolatedLookupTable hood_interplut = new InterpolatedLookupTable(
-            0.7, 0.25, // min and max to clamp to
-            60, 0.7,
-            80, 0.6,
-            100, 0.5,
-            120, 0.25
+            0.7, 0.4, // min and max to clamp to
+            46.3, 0.7,
+            57.4, 0.65,
+            75.2, 0.5,
+            96.3, 0.4,
+            133.1, 0.45,
+            156.9, 0.5
     );
 
     private MotorEx leftMotor = new MotorEx("FlyWheelL").brakeMode();
@@ -213,7 +241,7 @@ public class Shooter implements Subsystem {
     }
 
     public void setHoodPos(double pos) {
-        hood_pos = Range.clip(pos, hood_interplut.get(0), hood_interplut.get(999));
+        hood_pos = Range.clip(pos, hood_interplut.get(999), hood_interplut.get(0));
     }
 
     // set speed by subtracting velocity from goal position
@@ -270,10 +298,11 @@ public class Shooter implements Subsystem {
 
         speedFilter.update(motors.getVelocity(), 0);
 
+        hood.setPosition(hood_pos);
+
         KineticState state = new KineticState(motors.getState().getPosition(), getCurrentSpeed() * rpmToPPS, motors.getState().getAcceleration());
         if (Math.abs(control.getGoal().getVelocity()) < 100) {
             motors.setPower(-0.01);
-            hood.setPosition(hood_pos);
         } else {
             double target_effort = control.calculate(state);
 
@@ -288,7 +317,7 @@ public class Shooter implements Subsystem {
             double hood_offset = (-2.5 * vel_diff) / 125.0;
             double new_hood_pos = hood_deg_to_pos(hood_pos_to_deg(hood_pos) + hood_offset);
             new_hood_pos = Range.clip(new_hood_pos, hood_interplut.get(999), hood_interplut.get(0));
-            hood.setPosition(new_hood_pos);
+            //hood.setPosition(new_hood_pos);
 
             /*double cur_effort = motors.getPower();
             if (Math.abs(target_effort - cur_effort) > power_rate_per_sec * dt && Math.abs(control.getGoal().getVelocity() - motors.getVelocity()) > 100) {
@@ -298,9 +327,9 @@ public class Shooter implements Subsystem {
             }*/
         }
 
-        if (getCurrentSpeed() < 2300) {
+        if (getCurrentSpeed() < 2000) {
             //light.setPosition(0);
-            hood.setPosition(hood_interplut.get(0));
+            //hood.setPosition(hood_interplut.get(0));
         } else {
             if (atTargetSpeed(50)) {
                 light.setPosition(0.5); // Green

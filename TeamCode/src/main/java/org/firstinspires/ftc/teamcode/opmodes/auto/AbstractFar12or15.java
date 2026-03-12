@@ -9,7 +9,6 @@ import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 import org.firstinspires.ftc.teamcode.mathnstuff.DataStorage;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.pedroPathing.Drawing;
@@ -30,9 +29,9 @@ import dev.nextftc.hardware.powerable.SetPower;
 /*
     One class, 4 autos :)))
  */
-public abstract class AbstractClose15 extends NextFTCOpMode {
+public abstract class AbstractFar12or15 extends NextFTCOpMode {
     final boolean blue;
-    final boolean gatetwice; // true if good partner far auto to leave 3rd spike
+    final boolean hptwice; // true if good partner close auto to grab a bunch from hp
     final Pose goal;
     JoinedTelemetry telemetryM;
     ElapsedTime timer;
@@ -93,44 +92,33 @@ public abstract class AbstractClose15 extends NextFTCOpMode {
         PathChain PreloadShoot;
         PathChain GrabSpike1;
         PathChain Shoot1;
-        PathChain OpenGate1;
-        PathChain GrabGate1;
-        PathChain GrabGate2;
-        PathChain Shoot2;
+        PathChain InitSpike2;
         PathChain GrabSpike2;
+        PathChain Shoot2;
+        PathChain HumanPlayerGrab1;
+        PathChain HumanPlayerGrab2;
         PathChain Shoot3;
-        PathChain GrabSpike3;
-        PathChain Shoot4;
+        PathChain Leave;
 
-        Pose shoot = new Pose(48, 96, Math.toRadians(140));
-        Pose spike1control = new Pose(65, 55);
-        Pose spike1 = new Pose(7.5, 60, Math.toRadians(180));
-        Pose gatecontrol = new Pose(65, 55);
-        Pose gate = new Pose(10, 62, Math.toRadians(155));
-        Pose grabgate = new Pose(9, 46, Math.toRadians(110));
-        Pose gate2 = new Pose(9, 58, Math.toRadians(110));
-        Pose spike2control = new Pose(65, 23);
-        Pose spike2 = new Pose(7.5, 36, Math.toRadians(180));
-        Pose shoot3control = new Pose(50, 50);
-        Pose spike3control = new Pose(48.550, 80.725);
-        Pose spike3 = new Pose(12, 82, Math.toRadians(180));
-        Pose shoot4 = new Pose(60, 110, Math.toRadians(147.5));
+        Pose shoot = new Pose(56, 18, Math.toRadians(110));
+        Pose spike1control = new Pose(53, 40);
+        Pose spike1 = new Pose(8, 36, Math.toRadians(180));
+        Pose spike2init = new Pose(12, 24, Math.toRadians(230));
+        Pose spike2grab = new Pose(12, 12, Math.toRadians(270));
+        Pose hpgrab1 = new Pose(11, 10, Math.toRadians(115));
+        Pose hpgrab2 = new Pose(11, 36, Math.toRadians(115));
+        Pose leave = new Pose(30, 24, Math.toRadians(90));
 
         public Paths(Pose start) {
             if (!blue) {
                 shoot = shoot.mirror();
                 spike1control = spike1control.mirror();
                 spike1 = spike1.mirror();
-                gatecontrol = gatecontrol.mirror();
-                gate = gate.mirror();
-                grabgate = grabgate.mirror();
-                gate2 = gate2.mirror();
-                spike2control = spike2control.mirror();
-                spike2 = spike2.mirror();
-                shoot3control = shoot3control.mirror();
-                spike3control = spike3control.mirror();
-                spike3 = spike3.mirror();
-                shoot4 = shoot4.mirror();
+                spike2init = spike2init.mirror();
+                spike2grab = spike2grab.mirror();
+                hpgrab1 = hpgrab1.mirror();
+                hpgrab2 = hpgrab2.mirror();
+                leave = leave.mirror();
             }
 
             Follower follower = PedroComponent.follower();
@@ -160,84 +148,68 @@ public abstract class AbstractClose15 extends NextFTCOpMode {
                     ).setLinearHeadingInterpolation(spike1.getHeading(), shoot.getHeading(), 0.5)
                     //.setNoDeceleration()
                     .build();
-            OpenGate1 = follower.pathBuilder().addPath(
-                            new BezierCurve(
+            InitSpike2 = follower.pathBuilder().addPath(
+                            new BezierLine(
                                     shoot,
-                                    gatecontrol,
-                                    gate
+                                    spike2init
                             )
-                    ).setLinearHeadingInterpolation(shoot.getHeading(), gate.getHeading(), 0.5)
-                    //.setNoDeceleration()
-                    .setTValueConstraint(0.9)
-                    .build();
-            GrabGate1 = follower.pathBuilder().addPath(
-                            new BezierLine(
-                                    gate,
-                                    grabgate
-                            )
-                    ).setLinearHeadingInterpolation(gate.getHeading(), grabgate.getHeading(), 0.5)
-                    //.setNoDeceleration()
-                    .setTValueConstraint(0.8)
-                    .build();
-            GrabGate2 = follower.pathBuilder().addPath(
-                            new BezierLine(
-                                    grabgate,
-                                    gate2
-                            )
-                    ).setLinearHeadingInterpolation(grabgate.getHeading(), gate2.getHeading(), 0.5)
-                    //.setNoDeceleration()
-                    .setTValueConstraint(0.9)
-                    .build();
-            Shoot2 = follower.pathBuilder().addPath(
-                            new BezierCurve(
-                                    gate2,
-                                    gatecontrol,
-                                    shoot
-                            )
-                    ).setLinearHeadingInterpolation(gate2.getHeading(), shoot.getHeading(), 0.5)
+                    ).setLinearHeadingInterpolation(shoot.getHeading(), spike2init.getHeading(), 0.5)
                     //.setNoDeceleration()
                     .build();
             GrabSpike2 = follower.pathBuilder().addPath(
-                            new BezierCurve(
-                                    shoot,
-                                    spike2control,
-                                    spike2
+                            new BezierLine(
+                                    spike2init,
+                                    spike2grab
                             )
-                    ).setLinearHeadingInterpolation(shoot.getHeading(), spike2.getHeading(), 0.3)
-                    .setBrakingStrength(2)
-                    .build();
-            Shoot3 = follower.pathBuilder().addPath(
-                            new BezierCurve(
-                                    spike2,
-                                    shoot3control,
-                                    shoot
-                            )
-                    ).setLinearHeadingInterpolation(spike2.getHeading(), shoot.getHeading(), 0.5)
+                    ).setLinearHeadingInterpolation(spike2init.getHeading(), spike2grab.getHeading(), 0.5)
                     //.setNoDeceleration()
                     .build();
-            GrabSpike3 = follower.pathBuilder().addPath(
-                            new BezierCurve(
-                                    shoot,
-                                    spike3control,
-                                    spike3
+            Shoot2 = follower.pathBuilder().addPath(
+                            new BezierLine(
+                                    spike2grab,
+                                    shoot
                             )
-                    ).setLinearHeadingInterpolation(shoot.getHeading(), spike3.getHeading(), 0.2)
+                    ).setLinearHeadingInterpolation(spike2grab.getHeading(), shoot.getHeading(), 0.5)
+                    //.setNoDeceleration()
+                    .build();
+            HumanPlayerGrab1 = follower.pathBuilder().addPath(
+                            new BezierLine(
+                                    shoot,
+                                    hpgrab1
+                            )
+                    ).setLinearHeadingInterpolation(shoot.getHeading(), hpgrab1.getHeading(), 0.5)
                     .setBrakingStrength(2)
                     .build();
-            Shoot4 = follower.pathBuilder().addPath(
+            HumanPlayerGrab2 = follower.pathBuilder().addPath(
                             new BezierLine(
-                                    spike3,
-                                    shoot4
+                                    hpgrab1,
+                                    hpgrab2
                             )
-                    ).setLinearHeadingInterpolation(spike3.getHeading(), shoot4.getHeading(), 0.5)
+                    ).setLinearHeadingInterpolation(hpgrab1.getHeading(), hpgrab2.getHeading(), 0.5)
+                    //.setNoDeceleration()
+                    .build();
+            Shoot3 = follower.pathBuilder().addPath(
+                            new BezierLine(
+                                    hpgrab2,
+                                    shoot
+                            )
+                    ).setLinearHeadingInterpolation(hpgrab2.getHeading(), shoot.getHeading(), 0.5)
+                    .setBrakingStrength(2)
+                    .build();
+            Leave = follower.pathBuilder().addPath(
+                            new BezierLine(
+                                    shoot,
+                                    leave
+                            )
+                    ).setLinearHeadingInterpolation(shoot.getHeading(), leave.getHeading(), 0.5)
                     //.setNoDeceleration()
                     .build();
         }
     }
 
-    public AbstractClose15(boolean on_blue, boolean intake_gate_twice) {
+    public AbstractFar12or15(boolean on_blue, boolean intake_hp_twice) {
         blue = on_blue;
-        gatetwice = intake_gate_twice;
+        hptwice = intake_hp_twice;
 
         if (blue) {
             goal = new Pose(4, 140);
@@ -266,38 +238,38 @@ public abstract class AbstractClose15 extends NextFTCOpMode {
 
         Drawing.init();
 
-        Pose start = new Pose(20.300, 122.600, Math.toRadians(140));
+        Pose start = new Pose(56, 8, Math.toRadians(90));
         if (!blue) start = start.mirror();
         PedroComponent.follower().setStartingPose(start);
 
         Paths paths = new Paths(start);
 
         Command thirdGrab;
-        if (gatetwice) {
+        if (hptwice) {
             thirdGrab = new SequentialGroup(
                     intakeOn,
-                    new FollowPath(paths.OpenGate1),
+                    new FollowPath(paths.HumanPlayerGrab1),
                     new Delay(0.25),
-                    new FollowPath(paths.GrabGate1, false, 0.7),
-                    new FollowPath(paths.GrabGate2, true, 0.7),
-                    new Delay(0.1),
-                    new FollowPath(paths.Shoot2),
-                    intakeOff
-            );
-        } else {
-            thirdGrab = new SequentialGroup(
-                    intakeOn,
-                    new FollowPath(paths.GrabSpike2),
+                    new FollowPath(paths.HumanPlayerGrab2),
                     new Delay(0.25),
                     new FollowPath(paths.Shoot3),
-                    intakeOff
+                    intakeOff,
+                    shootCommand
             );
+        } else {
+            // do nothing
+            thirdGrab = new Command() {
+                @Override
+                public boolean isDone() {
+                    return true;
+                }
+            };
         }
 
         (new SequentialGroup(
-                Shooter.INSTANCE.setSpeedCommand(2225),
+                Shooter.INSTANCE.setSpeedCommand(2975),
                 new FollowPath(paths.PreloadShoot),
-                new Delay(0.5),
+                new Delay(1),
                 shootCommand,
                 intakeOn,
                 new FollowPath(paths.GrabSpike1),
@@ -306,23 +278,23 @@ public abstract class AbstractClose15 extends NextFTCOpMode {
                 intakeOff,
                 shootCommand,
                 intakeOn,
-                new FollowPath(paths.OpenGate1),
-                new Delay(0.25),
-                new FollowPath(paths.GrabGate1, false, 0.7),
-                new FollowPath(paths.GrabGate2, true, 0.7),
-                new Delay(0.1),
+                new FollowPath(paths.InitSpike2),
+                new FollowPath(paths.GrabSpike2, true, 0.55),
+                new Delay(0.35),
                 new FollowPath(paths.Shoot2),
                 intakeOff,
                 shootCommand,
                 thirdGrab,
-                shootCommand,
                 intakeOn,
-                new FollowPath(paths.GrabSpike3),
-                new Delay(0.1),
-                new FollowPath(paths.Shoot4),
+                new FollowPath(paths.HumanPlayerGrab1),
+                new Delay(0.25),
+                new FollowPath(paths.HumanPlayerGrab2),
+                new Delay(0.25),
+                new FollowPath(paths.Shoot3),
                 intakeOff,
                 shootCommand,
                 Shooter.INSTANCE.setSpeedCommand(0),
+                new FollowPath(paths.Leave),
                 new Command() {
                     @Override
                     public boolean isDone() {
@@ -336,7 +308,7 @@ public abstract class AbstractClose15 extends NextFTCOpMode {
     @Override
     public void onUpdate() {
         if (!opModeInInit()) {
-            Shooter.INSTANCE.setHoodPos(0.55);
+            Shooter.INSTANCE.setHoodPos(0.455);
         }
 
         double dt = timer.seconds() - last_time;
