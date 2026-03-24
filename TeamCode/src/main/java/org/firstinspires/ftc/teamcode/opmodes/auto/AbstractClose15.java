@@ -113,7 +113,7 @@ public abstract class AbstractClose15 extends NextFTCOpMode {
         Pose spike2 = new Pose(7.5, 36, Math.toRadians(180));
         Pose shoot3control = new Pose(50, 50);
         Pose spike3control = new Pose(48.550, 80.725);
-        Pose spike3 = new Pose(12, 82, Math.toRadians(180));
+        Pose spike3 = new Pose(12.5, 82, Math.toRadians(180));
         Pose shoot4 = new Pose(60, 110, Math.toRadians(147.5));
 
         public Paths(Pose start) {
@@ -277,9 +277,9 @@ public abstract class AbstractClose15 extends NextFTCOpMode {
             thirdGrab = new SequentialGroup(
                     intakeOn,
                     new FollowPath(paths.OpenGate1),
-                    new Delay(0.25),
-                    new FollowPath(paths.GrabGate1, false, 0.7),
-                    new FollowPath(paths.GrabGate2, true, 0.7),
+                    new Delay(0.1),
+                    new FollowPath(paths.GrabGate1),
+                    new FollowPath(paths.GrabGate2),
                     new Delay(0.1),
                     new FollowPath(paths.Shoot2),
                     intakeOff
@@ -295,9 +295,9 @@ public abstract class AbstractClose15 extends NextFTCOpMode {
         }
 
         (new SequentialGroup(
-                Shooter.INSTANCE.setSpeedCommand(2225),
+                Shooter.INSTANCE.setSpeedCommand(2250),
                 new FollowPath(paths.PreloadShoot),
-                new Delay(0.5),
+                new Delay(0.75),
                 shootCommand,
                 intakeOn,
                 new FollowPath(paths.GrabSpike1),
@@ -307,9 +307,9 @@ public abstract class AbstractClose15 extends NextFTCOpMode {
                 shootCommand,
                 intakeOn,
                 new FollowPath(paths.OpenGate1),
-                new Delay(0.25),
-                new FollowPath(paths.GrabGate1, false, 0.7),
-                new FollowPath(paths.GrabGate2, true, 0.7),
+                new Delay(0.1),
+                new FollowPath(paths.GrabGate1),
+                new FollowPath(paths.GrabGate2),
                 new Delay(0.1),
                 new FollowPath(paths.Shoot2),
                 intakeOff,

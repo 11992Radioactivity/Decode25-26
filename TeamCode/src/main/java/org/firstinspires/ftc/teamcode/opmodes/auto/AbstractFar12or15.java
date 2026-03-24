@@ -9,6 +9,7 @@ import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 import org.firstinspires.ftc.teamcode.mathnstuff.DataStorage;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.pedroPathing.Drawing;
@@ -40,6 +41,7 @@ public abstract class AbstractFar12or15 extends NextFTCOpMode {
     boolean done = false;
     boolean intake_on = false;
     boolean shooting = false;
+    ElapsedTime intake_timer = new ElapsedTime();
     IntakeSensors intakeSensors;
     final MotorEx intake = new MotorEx("Intake");
     final MotorEx transfer = new MotorEx("Transfer");
@@ -47,6 +49,7 @@ public abstract class AbstractFar12or15 extends NextFTCOpMode {
         @Override
         public boolean isDone() {
             intake_on = true;
+            intake_timer.reset();
             intake.setPower(1);
             return true;
         }
@@ -74,7 +77,7 @@ public abstract class AbstractFar12or15 extends NextFTCOpMode {
             },
             intakeOn,
             transferOn,
-            new Delay(0.7),
+            new Delay(1),
             new Command() {
                 @Override
                 public boolean isDone() {
@@ -100,18 +103,19 @@ public abstract class AbstractFar12or15 extends NextFTCOpMode {
         PathChain Shoot3;
         PathChain Leave;
 
-        Pose shoot = new Pose(56, 18, Math.toRadians(110));
+        Pose shoot = new Pose(56, 16, Math.toRadians(111.5));
         Pose spike1control = new Pose(53, 40);
         Pose spike1 = new Pose(8, 36, Math.toRadians(180));
-        Pose spike2init = new Pose(12, 24, Math.toRadians(230));
-        Pose spike2grab = new Pose(12, 12, Math.toRadians(270));
-        Pose hpgrab1 = new Pose(11, 10, Math.toRadians(115));
-        Pose hpgrab2 = new Pose(11, 36, Math.toRadians(115));
-        Pose leave = new Pose(30, 24, Math.toRadians(90));
+        Pose spike2init = new Pose(10, 28, Math.toRadians(270));
+        Pose spike2grab = new Pose(10, 12, Math.toRadians(270));
+        Pose hpgrab1 = new Pose(56, 8.5, Math.toRadians(180));
+        Pose hpgrab2 = new Pose(9, 8.5, Math.toRadians(180));
+        Pose leave = new Pose(20, 10, Math.toRadians(90));
 
         public Paths(Pose start) {
             if (!blue) {
                 shoot = shoot.mirror();
+                shoot = shoot.setHeading(Math.toRadians(180-112.5+7.5));
                 spike1control = spike1control.mirror();
                 spike1 = spike1.mirror();
                 spike2init = spike2init.mirror();
@@ -137,7 +141,6 @@ public abstract class AbstractFar12or15 extends NextFTCOpMode {
                                     spike1
                             )
                     ).setLinearHeadingInterpolation(shoot.getHeading(), spike1.getHeading(), 0.3)
-                    .setBrakingStrength(2)
                     .build();
             Shoot1 = follower.pathBuilder().addPath(
                             new BezierCurve(
@@ -177,15 +180,14 @@ public abstract class AbstractFar12or15 extends NextFTCOpMode {
                                     shoot,
                                     hpgrab1
                             )
-                    ).setLinearHeadingInterpolation(shoot.getHeading(), hpgrab1.getHeading(), 0.5)
-                    .setBrakingStrength(2)
+                    ).setLinearHeadingInterpolation(shoot.getHeading(), hpgrab1.getHeading(), 0.2)
                     .build();
             HumanPlayerGrab2 = follower.pathBuilder().addPath(
                             new BezierLine(
                                     hpgrab1,
                                     hpgrab2
                             )
-                    ).setLinearHeadingInterpolation(hpgrab1.getHeading(), hpgrab2.getHeading(), 0.5)
+                    ).setLinearHeadingInterpolation(hpgrab1.getHeading(), hpgrab2.getHeading(), 0.2)
                     //.setNoDeceleration()
                     .build();
             Shoot3 = follower.pathBuilder().addPath(
@@ -194,7 +196,6 @@ public abstract class AbstractFar12or15 extends NextFTCOpMode {
                                     shoot
                             )
                     ).setLinearHeadingInterpolation(hpgrab2.getHeading(), shoot.getHeading(), 0.5)
-                    .setBrakingStrength(2)
                     .build();
             Leave = follower.pathBuilder().addPath(
                             new BezierLine(
@@ -267,31 +268,34 @@ public abstract class AbstractFar12or15 extends NextFTCOpMode {
         }
 
         (new SequentialGroup(
-                Shooter.INSTANCE.setSpeedCommand(2975),
+                Shooter.INSTANCE.setSpeedCommand(3050),
                 new FollowPath(paths.PreloadShoot),
-                new Delay(1),
+                new Delay(1.5),
                 shootCommand,
                 intakeOn,
-                new FollowPath(paths.GrabSpike1),
+                new FollowPath(paths.GrabSpike1, true, 0.7),
                 new Delay(0.1),
                 new FollowPath(paths.Shoot1),
                 intakeOff,
+                new Delay(0.5),
                 shootCommand,
                 intakeOn,
-                new FollowPath(paths.InitSpike2),
-                new FollowPath(paths.GrabSpike2, true, 0.55),
+                new FollowPath(paths.InitSpike2, true, 0.7),
+                new FollowPath(paths.GrabSpike2, true, 0.8),
                 new Delay(0.35),
                 new FollowPath(paths.Shoot2),
                 intakeOff,
+                new Delay(0.5),
                 shootCommand,
                 thirdGrab,
                 intakeOn,
-                new FollowPath(paths.HumanPlayerGrab1),
+                new FollowPath(paths.HumanPlayerGrab1, true, 0.7),
                 new Delay(0.25),
-                new FollowPath(paths.HumanPlayerGrab2),
+                new FollowPath(paths.HumanPlayerGrab2, true, 0.7),
                 new Delay(0.25),
                 new FollowPath(paths.Shoot3),
                 intakeOff,
+                new Delay(0.5),
                 shootCommand,
                 Shooter.INSTANCE.setSpeedCommand(0),
                 new FollowPath(paths.Leave),
@@ -308,7 +312,7 @@ public abstract class AbstractFar12or15 extends NextFTCOpMode {
     @Override
     public void onUpdate() {
         if (!opModeInInit()) {
-            Shooter.INSTANCE.setHoodPos(0.455);
+            Shooter.INSTANCE.setHoodPos(0.5);
         }
 
         double dt = timer.seconds() - last_time;
@@ -322,11 +326,10 @@ public abstract class AbstractFar12or15 extends NextFTCOpMode {
             Shooter.INSTANCE.setSpeed(0);
         }
 
-        intakeSensors.updateCounter(3);
-
-        if (intake_on && intakeSensors.counterGreaterThan(0.7) && !shooting) {
+        double intake_current = intake.getMotor().getCurrent(CurrentUnit.AMPS);
+        if (intake_on && intake_current > 6 && intake.getPower() == 1) {
             intake.setPower(0);
-        } else if (intake_on) {
+        } else if (intake_on && intake_current < 6) {
             intake.setPower(1);
         }
 

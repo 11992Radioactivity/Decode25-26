@@ -19,6 +19,7 @@ import org.firstinspires.ftc.teamcode.mathnstuff.DataStorage;
 import org.firstinspires.ftc.teamcode.subsystems.IntakeSensors;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 import org.firstinspires.ftc.teamcode.mathnstuff.PoseEstimator;
+import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.psilynx.psikit.core.Logger;
 import org.psilynx.psikit.core.rlog.RLOGServer;
 import org.psilynx.psikit.core.rlog.RLOGWriter;
@@ -27,6 +28,7 @@ import org.psilynx.psikit.core.wpi.math.Rotation2d;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 import dev.nextftc.bindings.BindingManager;
@@ -185,7 +187,7 @@ public class ManualTeleOp extends NextFTCOpMode {
         telemetryM = new JoinedTelemetry(telemetry, PanelsTelemetry.INSTANCE.getFtcTelemetry());
         panelsGamepad1 = PanelsGamepad.INSTANCE.getFirstManager();
         //panelsGamepad2 = PanelsGamepad.INSTANCE.getSecondManager();
-        //camera = new AprilTagCamera(hardwareMap);
+        camera = new AprilTagCamera(hardwareMap);
 
         if (onBlue) {
             goalPose = new Pose(4, 140);
@@ -455,9 +457,11 @@ public class ManualTeleOp extends NextFTCOpMode {
         // change, but since the pedro pose is both set to the previous estimate and
         // incremented automatically with odometry, we can just pass it back in since
         // the function just sets the estimate to the thing passed in
-        poseEstimator.updateOdometry(PedroComponent.follower().getPose());
+        poseEstimator.updateOdometry(PedroComponent.follower().getPose().setHeading(
+                PedroComponent.follower().getHeading() + heading_offset
+        ));
 
-        /*
+
         camera.update();
         List<AprilTagDetection> tags = camera.getDetections();
 
@@ -500,7 +504,7 @@ public class ManualTeleOp extends NextFTCOpMode {
             );
         }
 
-         */
+
         intakeSensors.updateCounter(3);
 
         //double intake_current = intake.getMotor().getCurrent(CurrentUnit.AMPS);

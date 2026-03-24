@@ -315,9 +315,9 @@ public class Shooter implements Subsystem {
 
             double vel_diff = getTargetSpeed() - getCurrentSpeed();
             double hood_offset = (-2.5 * vel_diff) / 125.0;
-            double new_hood_pos = hood_deg_to_pos(hood_pos_to_deg(hood_pos) + hood_offset);
+            double new_hood_pos = hood_deg_to_pos(hood_pos_to_deg(hood_pos) - hood_offset);
             new_hood_pos = Range.clip(new_hood_pos, hood_interplut.get(999), hood_interplut.get(0));
-            //hood.setPosition(new_hood_pos);
+            hood.setPosition(new_hood_pos);
 
             /*double cur_effort = motors.getPower();
             if (Math.abs(target_effort - cur_effort) > power_rate_per_sec * dt && Math.abs(control.getGoal().getVelocity() - motors.getVelocity()) > 100) {
