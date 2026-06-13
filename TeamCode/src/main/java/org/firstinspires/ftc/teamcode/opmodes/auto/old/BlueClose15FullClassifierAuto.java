@@ -187,6 +187,7 @@ public class BlueClose15FullClassifierAuto extends NextFTCOpMode {
 
     private Command auto;
     private double curTime = 0;
+    private double last_save = 0;
     private boolean done = false;
 
     @Override
@@ -287,9 +288,11 @@ public class BlueClose15FullClassifierAuto extends NextFTCOpMode {
     @Override
     public void onUpdate() {
         if (!done) {
-            DataStorage.INSTANCE.onBlue = true;
-            DataStorage.INSTANCE.teleopStartPose = PedroComponent.follower().getPose();
             curTime = timer.time();
+            if (curTime - last_save > 0.2) {
+                DataStorage.save(PedroComponent.follower().getPose(), true);
+                last_save = curTime;
+            }
         } else {
             Shooter.INSTANCE.setSpeed(0);
         }

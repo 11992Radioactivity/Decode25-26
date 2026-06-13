@@ -51,15 +51,26 @@ public class Shooter implements Subsystem {
 //            120, 0.25
 //    );
 
+//    InterpolatedLookupTable vel_interplut = new InterpolatedLookupTable(
+//            2300, 3125, // min and max to clamp to
+//            53.49, 2300,
+//            67.94, 2550,
+//            75.2, 2800,
+//            84, 3000,
+//            96.3, 3200,
+//            133.1, 3600,
+//            156.9, 3800
+//    );
+
     InterpolatedLookupTable vel_interplut = new InterpolatedLookupTable(
-            2125, 3125, // min and max to clamp to
-            46.3, 2225,
-            57.4, 2125,
-            75.2, 2375,
-            84, 2500,
-            96.3, 2550,
-            133.1, 2925,
-            156.9, 3125
+            2400, 3600, // min and max to clamp to
+            46.3, 2400,
+            57.4, 2600,
+            75.2, 2800,
+            84, 3000,
+            96.3, 3200,
+            133.1, 3400,
+            156.9, 3600
     );
 
     //96.3: 2550, 0.4
@@ -75,12 +86,12 @@ public class Shooter implements Subsystem {
             57.4, 0.65,
             75.2, 0.5,
             96.3, 0.4,
-            133.1, 0.45,
-            156.9, 0.5
+            133.1, 0.4,
+            156.9, 0.35
     );
 
-    private MotorEx leftMotor = new MotorEx("FlyWheelL").brakeMode();
-    private MotorEx rightMotor = new MotorEx("FlyWheelR").reversed().brakeMode();
+    private MotorEx leftMotor = new MotorEx("FlyWheelL").reversed().floatMode();
+    private MotorEx rightMotor = new MotorEx("FlyWheelR").reversed().floatMode();
 
     // set as many motors as you want with one line of code
     private MotorGroup motors = new MotorGroup(
@@ -91,23 +102,24 @@ public class Shooter implements Subsystem {
     private ServoEx light = new ServoEx("Indicator");
     private ServoEx hood = new ServoEx("Hood");
 
-    private double kV = 0.0047;
-    private double kS = 1.5009;
-    private double kPdef = 0.0025;
+    private double kV = 0.0058;//0.0053;//0.0047;
+    private double kS = 2.9179;//1.318;
+    private double kPdef = 0.0025;//0.0025;
+    private double kD = 0;
     private double kP = kPdef;
      // - feedforward is good for general use but doesn't react fast
     // - pid is good for fast reaction but goes to 0 at setpoint which is bad for flywheel
     // solution = combine both for ultimate flywheel controller
     private ControlSystem control = ControlSystem.builder()
             .basicFF(kV / 12, 0, kS / 12) // power proportional to speed
-            .velPid(kP) // power proportional to distance between current and set speed
+            .velPid(kP, 0, kD) // power proportional to distance between current and set speed
             .build();
 
     private final double ppr = 28; // pulses per revolution (28 for 6k rpm)
     private final double rpmToPPS = ppr / 60; // (rpm / 60) * ppr
 
-    private final double gate_closed = 0.1;
-    private final double gate_opened = 0.4;
+    private final double gate_closed = 0.415;
+    private final double gate_opened = 0.4575;
 
     public double hood_pos = 0.7;
     public double targetSpeed = 2800;
@@ -155,7 +167,7 @@ public class Shooter implements Subsystem {
     public void setVoltage(double voltage) {
         control = ControlSystem.builder()
                 .basicFF(kV / voltage, 0, kS / voltage)
-                .velPid(kP)
+                .velPid(kP, 0, kD)
                 .build();
     }
 
@@ -231,7 +243,7 @@ public class Shooter implements Subsystem {
 
     public void setSpeedFromDistance(double distIn) {
         if (usePhysics) {
-            double linearSpeed = getLinearSpeedFromDistance(distIn);
+            double linearSpeed = getLinearSpeedFromDistance(distIn - 5);
             setSpeedFromLinearSpeed(linearSpeed);
         } else {
             setSpeed(vel_interplut.get(distIn));
@@ -296,7 +308,7 @@ public class Shooter implements Subsystem {
         double dt = (cur - last_timestamp) / 1000.0;
         last_timestamp = cur;
 
-        speedFilter.update(motors.getVelocity(), 0);
+        speedFilter.update(-motors.getVelocity(), 0);
 
         hood.setPosition(hood_pos);
 
@@ -305,19 +317,20 @@ public class Shooter implements Subsystem {
             motors.setPower(-0.01);
         } else {
             double target_effort = control.calculate(state);
+            motors.setPower(target_effort);
 
             /*double avg_current = (leftMotor.getMotor().getCurrent(CurrentUnit.AMPS) + rightMotor.getMotor().getCurrent(CurrentUnit.AMPS)) / 2;
             if (avg_current > 6) {
                 target_effort = 0.05;
             }*/
 
-            motors.setPower(target_effort);
+            //motors.setPower(Range.clip(target_effort, -1, 1));
 
-            double vel_diff = getTargetSpeed() - getCurrentSpeed();
+            /*double vel_diff = getTargetSpeed() - getCurrentSpeed();
             double hood_offset = (-2.5 * vel_diff) / 125.0;
             double new_hood_pos = hood_deg_to_pos(hood_pos_to_deg(hood_pos) - hood_offset);
             new_hood_pos = Range.clip(new_hood_pos, hood_interplut.get(999), hood_interplut.get(0));
-            hood.setPosition(new_hood_pos);
+            hood.setPosition(new_hood_pos);*/
 
             /*double cur_effort = motors.getPower();
             if (Math.abs(target_effort - cur_effort) > power_rate_per_sec * dt && Math.abs(control.getGoal().getVelocity() - motors.getVelocity()) > 100) {

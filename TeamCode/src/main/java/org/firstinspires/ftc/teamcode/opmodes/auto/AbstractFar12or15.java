@@ -37,6 +37,7 @@ public abstract class AbstractFar12or15 extends NextFTCOpMode {
     JoinedTelemetry telemetryM;
     ElapsedTime timer;
     double last_time = 0;
+    double last_save = 0;
     double cur_time = 0;
     boolean done = false;
     boolean intake_on = false;
@@ -319,9 +320,11 @@ public abstract class AbstractFar12or15 extends NextFTCOpMode {
         last_time = timer.seconds();
 
         if (!done) {
-            DataStorage.INSTANCE.onBlue = blue;
-            DataStorage.INSTANCE.teleopStartPose = PedroComponent.follower().getPose();
             cur_time = timer.time();
+            if (cur_time - last_save > 0.2) {
+                DataStorage.save(PedroComponent.follower().getPose(), blue);
+                last_save = cur_time;
+            }
         } else {
             Shooter.INSTANCE.setSpeed(0);
         }

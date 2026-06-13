@@ -21,7 +21,7 @@ public class FlyWheelCharacterizationOpMode extends NextFTCOpMode {
 
     JoinedTelemetry joinedTelemetry = new JoinedTelemetry(telemetry, PanelsTelemetry.INSTANCE.getFtcTelemetry());
     private MotorGroup motors = new MotorGroup(
-            (new MotorEx("FlyWheelL")).floatMode(),
+            (new MotorEx("FlyWheelL")).reversed().floatMode(),
             (new MotorEx("FlyWheelR")).reversed().floatMode() // right is leader because it doesn't have to be reversed
     );
     ElapsedTime timer;
@@ -49,7 +49,7 @@ public class FlyWheelCharacterizationOpMode extends NextFTCOpMode {
         double dt = loopTimer.seconds();
         loopTimer.reset();
 
-        double vel = motors.getVelocity();
+        double vel = -motors.getVelocity();
 
         // only collect data up until time is up
         if (timer.seconds() < runtime) {

@@ -177,6 +177,7 @@ public class RedClose12Auto extends NextFTCOpMode {
 
     private Command auto;
     private double curTime = 0;
+    private double last_save = 0;
     private boolean done = false;
 
     @Override
@@ -246,9 +247,11 @@ public class RedClose12Auto extends NextFTCOpMode {
     @Override
     public void onUpdate() {
         if (!done) {
-            curTime = timer.seconds();
-            DataStorage.INSTANCE.onBlue = false;
-            DataStorage.INSTANCE.teleopStartPose = PedroComponent.follower().getPose();
+            curTime = timer.time();
+            if (curTime - last_save > 0.2) {
+                DataStorage.save(PedroComponent.follower().getPose(), false);
+                last_save = curTime;
+            }
         } else {
             Shooter.INSTANCE.setSpeed(0);
         }

@@ -59,7 +59,7 @@ public class AutoTeleOp extends NextFTCOpMode {
     private final GamepadManager panelsGamepad2 = PanelsGamepad.INSTANCE.getSecondManager();
     private final MotorEx intake = new MotorEx("Intake");
 
-    private final boolean onBlue = DataStorage.INSTANCE.onBlue;
+    private final boolean onBlue = DataStorage.loadAlliance();
     private boolean autoAim = false;
     private double targetHeading = 0;
     private boolean activeTurning = false;
@@ -93,7 +93,7 @@ public class AutoTeleOp extends NextFTCOpMode {
     public void onStartButtonPressed() {
         Shooter.INSTANCE.off.schedule();
 
-        PedroComponent.follower().setStartingPose(DataStorage.INSTANCE.teleopStartPose);
+        PedroComponent.follower().setStartingPose(DataStorage.loadPose());
         if (onBlue) goalPose = new Pose(4, 132);
         else goalPose = new Pose(144, 136);
 

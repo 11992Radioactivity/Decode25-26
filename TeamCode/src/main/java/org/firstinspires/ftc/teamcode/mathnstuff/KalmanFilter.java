@@ -12,7 +12,7 @@ public class KalmanFilter {
     private double process_noise;
     private double measure_noise;
     private double rejection_amount = Double.POSITIVE_INFINITY;
-    private double override_amount = 10; // estimate so bad that even a measurement with a lot of variance will be more accurate
+    private double override_amount = 99999; // estimate so bad that even a measurement with a lot of variance will be more accurate
     private double override_count = 0; // amount of bad estimates that then it takes it
 
     public KalmanFilter(double estimate, double variance, double process_noise, double measure_noise, boolean angle_var) {
@@ -51,7 +51,7 @@ public class KalmanFilter {
     // high variance = set to measurement
     public void updateMeasurement(double measurement, double measure_noise_scale) {
         double err = Math.abs(measurement - estimate);
-        if (err > rejection_amount && err < override_amount) return;
+        //if (err > rejection_amount && err < override_amount) return;
 
         /*if (err > override_amount) {
             override_count++;
