@@ -5,15 +5,15 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Servo;
 
 @TeleOp
-public class GateTest extends LinearOpMode {
-    Servo gate;
+public class HoodTest extends LinearOpMode {
+    Servo hood;
 
     @Override
     public void runOpMode() {
-        gate = hardwareMap.get(Servo.class, "Gate");
+        hood = hardwareMap.get(Servo.class, "Hood");
         long start = System.currentTimeMillis();
-        double min = 0.405;
-        double max = 0.4575;
+        double min = 0.4;
+        double max = 0.7;
         double cur = min;
         waitForStart();
         while (opModeIsActive()) {
@@ -21,9 +21,9 @@ public class GateTest extends LinearOpMode {
                 start = System.currentTimeMillis();
                 if (cur == min) cur = max;
                 else cur = min;
-                gate.setPosition(cur);
+                hood.setPosition(cur);
             }
-            telemetry.addData("open", cur == max);
+            telemetry.addData("down", cur == max);
             telemetry.update();
         }
     }

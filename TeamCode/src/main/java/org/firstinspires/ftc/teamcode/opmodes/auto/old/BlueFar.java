@@ -7,6 +7,7 @@ import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.*;
@@ -186,7 +187,7 @@ public class BlueFar extends NextFTCOpMode {
                 /*new FollowPath(paths.Grab3Init),
                 intakeOn,
                 new FollowPath(paths.Grab3Grab, true, 0.7),
-                new FollowPath(paths.Shoot4),
+                new FollowPath(paths.Shoot4)
                 intakeOff,
                 shoot, //shoot
                 new FollowPath(paths.MoveOffLaunchLine)*/
@@ -197,10 +198,11 @@ public class BlueFar extends NextFTCOpMode {
 
     @Override
     public void onUpdate() {
-        telemetryM.debug("time", timer.seconds());
-        telemetryM.debug("position", PedroComponent.follower().getPose());
-        telemetryM.debug("velocity", PedroComponent.follower().getVelocity());
+        telemetryM.addData("time", timer.seconds());
+        telemetryM.addData("position", PedroComponent.follower().getPose());
+        telemetryM.addData("velocity", PedroComponent.follower().getVelocity());
 
+        DataStorage.save(PedroComponent.follower().getPose(), true);
         Drawing.drawDebug(PedroComponent.follower());
         telemetryM.update();
     }

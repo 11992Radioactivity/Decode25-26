@@ -8,7 +8,7 @@ import java.io.File;
 // store data between auto and teleop
 public class DataStorage {
     private static final String FILE_NAME = "match_data.txt";
-    private static final long MAX_AGE_MS = 30_000; // 30 seconds
+    private static final long MAX_AGE_MS = 60_000; // 30 seconds
 
     private static File getFile() {
         return AppUtil.getInstance().getSettingsFile(FILE_NAME);

@@ -36,7 +36,7 @@ public class PoseEstimator {
                 Math.pow(Math.toRadians(3), 2),
                 Math.pow(5, 2),
                 Math.pow(Math.toRadians(20), 2),
-                0.3);
+                0.6);
     }
 
     public Pose getCurrentEstimate() {

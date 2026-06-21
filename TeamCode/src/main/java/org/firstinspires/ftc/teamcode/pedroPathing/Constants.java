@@ -63,8 +63,8 @@ public class Constants {
             ))
             .drivePIDFSwitch(15)
             .useSecondaryDrivePIDF(true)
-            .centripetalScaling(0.0005);
-    */
+            .centripetalScaling(0.0005);*/
+
 
     /*
     .translationalPIDFCoefficients(new PIDFCoefficients(

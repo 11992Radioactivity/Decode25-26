@@ -7,6 +7,7 @@ import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
+import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
@@ -22,6 +23,7 @@ import dev.nextftc.core.commands.groups.SequentialGroup;
 import dev.nextftc.core.components.SubsystemComponent;
 import dev.nextftc.extensions.pedro.FollowPath;
 import dev.nextftc.extensions.pedro.PedroComponent;
+import dev.nextftc.ftc.ActiveOpMode;
 import dev.nextftc.ftc.NextFTCOpMode;
 import dev.nextftc.ftc.components.BulkReadComponent;
 import dev.nextftc.hardware.impl.MotorEx;
@@ -92,6 +94,7 @@ public abstract class AbstractClose15 extends NextFTCOpMode {
 
     class Paths {
         PathChain PreloadShoot;
+        PathChain PreloadPark;
         PathChain GrabSpike1;
         PathChain Shoot1;
         PathChain OpenGate1;
@@ -104,12 +107,13 @@ public abstract class AbstractClose15 extends NextFTCOpMode {
         PathChain Shoot4;
 
         Pose shoot = new Pose(48, 96, Math.toRadians(140));
+        Pose preloadPark = new Pose(20.3, 102, Math.toRadians(180));
         Pose spike1control = new Pose(65, 55);
         Pose spike1 = new Pose(7.5, 60, Math.toRadians(180));
         Pose gatecontrol = new Pose(65, 55);
-        Pose gate = new Pose(10, 62, Math.toRadians(155));
-        Pose grabgate = new Pose(9, 46, Math.toRadians(110));
-        Pose gate2 = new Pose(9, 58, Math.toRadians(110));
+        Pose gate = new Pose(10, 63, Math.toRadians(155));
+        Pose grabgate = new Pose(9, 52, Math.toRadians(180));
+        Pose gate2 = new Pose(8.5, 56, Math.toRadians(155));
         Pose spike2control = new Pose(65, 23);
         Pose spike2 = new Pose(7.5, 36, Math.toRadians(180));
         Pose shoot3control = new Pose(50, 50);
@@ -120,6 +124,7 @@ public abstract class AbstractClose15 extends NextFTCOpMode {
         public Paths(Pose start) {
             if (!blue) {
                 shoot = shoot.mirror();
+                preloadPark = preloadPark.mirror();
                 spike1control = spike1control.mirror();
                 spike1 = spike1.mirror();
                 gatecontrol = gatecontrol.mirror();
@@ -142,7 +147,19 @@ public abstract class AbstractClose15 extends NextFTCOpMode {
                             )
                     ).setLinearHeadingInterpolation(start.getHeading(), shoot.getHeading(), 0.5)
                     //.setNoDeceleration()
+                    .setBrakingStrength(2)
                     .build();
+
+            PreloadPark = follower.pathBuilder().addPath(
+                            new BezierLine(
+                                    shoot,
+                                    preloadPark
+                            )
+                    ).setLinearHeadingInterpolation(shoot.getHeading(), preloadPark.getHeading(), 0.5)
+                    //.setNoDeceleration()
+                    .setBrakingStrength(2)
+                    .build();
+
             GrabSpike1 = follower.pathBuilder().addPath(
                             new BezierCurve(
                                     shoot,
@@ -160,6 +177,7 @@ public abstract class AbstractClose15 extends NextFTCOpMode {
                             )
                     ).setLinearHeadingInterpolation(spike1.getHeading(), shoot.getHeading(), 0.5)
                     //.setNoDeceleration()
+                    .setBrakingStrength(2)
                     .build();
             OpenGate1 = follower.pathBuilder().addPath(
                             new BezierCurve(
@@ -169,6 +187,7 @@ public abstract class AbstractClose15 extends NextFTCOpMode {
                             )
                     ).setLinearHeadingInterpolation(shoot.getHeading(), gate.getHeading(), 0.5)
                     //.setNoDeceleration()
+                    .setBrakingStrength(2)
                     .setTValueConstraint(0.9)
                     .build();
             GrabGate1 = follower.pathBuilder().addPath(
@@ -178,15 +197,17 @@ public abstract class AbstractClose15 extends NextFTCOpMode {
                             )
                     ).setLinearHeadingInterpolation(gate.getHeading(), grabgate.getHeading(), 0.5)
                     //.setNoDeceleration()
+                    .setBrakingStrength(2)
                     .setTValueConstraint(0.8)
                     .build();
             GrabGate2 = follower.pathBuilder().addPath(
                             new BezierLine(
-                                    grabgate,
+                                    gate,
                                     gate2
                             )
-                    ).setLinearHeadingInterpolation(grabgate.getHeading(), gate2.getHeading(), 0.5)
+                    ).setLinearHeadingInterpolation(gate.getHeading(), gate2.getHeading(), 0.5)
                     //.setNoDeceleration()
+                    .setBrakingStrength(2)
                     .setTValueConstraint(0.9)
                     .build();
             Shoot2 = follower.pathBuilder().addPath(
@@ -197,6 +218,7 @@ public abstract class AbstractClose15 extends NextFTCOpMode {
                             )
                     ).setLinearHeadingInterpolation(gate2.getHeading(), shoot.getHeading(), 0.5)
                     //.setNoDeceleration()
+                    .setBrakingStrength(2)
                     .build();
             GrabSpike2 = follower.pathBuilder().addPath(
                             new BezierCurve(
@@ -215,6 +237,7 @@ public abstract class AbstractClose15 extends NextFTCOpMode {
                             )
                     ).setLinearHeadingInterpolation(spike2.getHeading(), shoot.getHeading(), 0.5)
                     //.setNoDeceleration()
+                    .setBrakingStrength(2)
                     .build();
             GrabSpike3 = follower.pathBuilder().addPath(
                             new BezierCurve(
@@ -232,6 +255,7 @@ public abstract class AbstractClose15 extends NextFTCOpMode {
                             )
                     ).setLinearHeadingInterpolation(spike3.getHeading(), shoot4.getHeading(), 0.5)
                     //.setNoDeceleration()
+                    .setBrakingStrength(2)
                     .build();
         }
     }
@@ -258,6 +282,8 @@ public abstract class AbstractClose15 extends NextFTCOpMode {
         Shooter.INSTANCE.setSpeed(0);
 
         intakeSensors = new IntakeSensors(hardwareMap);
+
+        v = ActiveOpMode.hardwareMap().voltageSensor.iterator().next();
     }
 
     @Override
@@ -278,8 +304,7 @@ public abstract class AbstractClose15 extends NextFTCOpMode {
             thirdGrab = new SequentialGroup(
                     intakeOn,
                     new FollowPath(paths.OpenGate1),
-                    new Delay(0.1),
-                    new FollowPath(paths.GrabGate1),
+                    new Delay(0.3),
                     new FollowPath(paths.GrabGate2),
                     new Delay(0.1),
                     new FollowPath(paths.Shoot2),
@@ -296,10 +321,12 @@ public abstract class AbstractClose15 extends NextFTCOpMode {
         }
 
         (new SequentialGroup(
-                Shooter.INSTANCE.setSpeedCommand(2250),
+                Shooter.INSTANCE.setSpeedCommand(2325),
                 new FollowPath(paths.PreloadShoot),
-                new Delay(0.75),
+                new Delay(1),
                 shootCommand,
+                Shooter.INSTANCE.setSpeedCommand(2150),
+                //new FollowPath(paths.PreloadPark),
                 intakeOn,
                 new FollowPath(paths.GrabSpike1),
                 new Delay(0.1),
@@ -308,8 +335,7 @@ public abstract class AbstractClose15 extends NextFTCOpMode {
                 shootCommand,
                 intakeOn,
                 new FollowPath(paths.OpenGate1),
-                new Delay(0.1),
-                new FollowPath(paths.GrabGate1),
+                new Delay(0.3),
                 new FollowPath(paths.GrabGate2),
                 new Delay(0.1),
                 new FollowPath(paths.Shoot2),
@@ -334,14 +360,18 @@ public abstract class AbstractClose15 extends NextFTCOpMode {
         )).schedule();
     }
 
+    VoltageSensor v;
+
     @Override
     public void onUpdate() {
         if (!opModeInInit()) {
-            Shooter.INSTANCE.setHoodPos(0.55);
+            Shooter.INSTANCE.setHoodPos(0.6);
         }
 
         double dt = timer.seconds() - last_time;
         last_time = timer.seconds();
+
+        Shooter.INSTANCE.setVoltage(v.getVoltage());
 
         if (!done) {
             cur_time = timer.time();
